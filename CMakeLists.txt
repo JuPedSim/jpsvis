@@ -64,6 +64,7 @@ message( STATUS "Generating  ................................... ${PROJECT_NAME}
 find_package(VTK 9.0 REQUIRED)
 set(VTK_USE_GUISUPPORT  ON)
 set(VTK_USE_QT  ON)
+
 # Qt
 find_package(
         Qt5 5.14
@@ -87,25 +88,19 @@ set_source_files_properties(${app_icon_macos} PROPERTIES MACOSX_PACKAGE_LOCATION
 
 add_executable(jpsvis MACOSX_BUNDLE WIN32 src/main.cpp ${app_icon_macos})
 
-target_compile_definitions(jpsvis PUBLIC
-        JPSVIS_VERSION="${PROJECT_VERSION}"
-        GIT_COMMIT_HASH="${GIT_SHA1}"
-        GIT_COMMIT_DATE="${GIT_DATE}"
-        GIT_COMMIT_SUBJECT="${GIT_COMMIT_SUBJECT}"
-        GIT_BRANCH="${GIT_BRANCH}"
-)
-
 target_compile_options(jpsvis PRIVATE ${COMMON_COMPILE_OPTIONS})
 
 #**********************************************************
-# Linking Qt and VTK                                             *
+# Linking Qt and VTK
 #**********************************************************
+get_git_info()
 target_link_libraries(jpsvis PUBLIC
         Qt5::Widgets
         Qt5::Xml
         Qt5::Core
         Qt5::Network
         ${VTK_LIBRARIES}
+        git-info
 )
 
 # vtk_module_autoinit is needed
@@ -113,10 +108,10 @@ vtk_module_autoinit(
         TARGETS jpsvis
         MODULES ${VTK_LIBRARIES}
 )
+
 #**************************************************************
 # SOURCES                                                     *
 #**************************************************************
-
 target_include_directories(jpsvis PUBLIC "${CMAKE_SOURCE_DIR}/src" "${CMAKE_SOURCE_DIR}/forms" ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR})
 set( SRCS
         src/geometry/Building.cpp
@@ -223,13 +218,14 @@ set( RCS
 
 target_sources(jpsvis PRIVATE ${SRCS} ${HDR} ${UIS} ${HDR})
 
+target_compile_definitions(jpsvis PUBLIC
+        JPSVIS_VERSION="${PROJECT_VERSION}"
+)
+
 ################################################################################
 # Packaging with CPack
 ################################################################################
 #include(install_helper)
-#IF(UNIX AND NOT APPLE)
-#    cpack_write_deb_config()
-#endif()
 #if(WIN32 AND NOT UNIX)
 #    cpack_write_windows_config()
 #endif()
