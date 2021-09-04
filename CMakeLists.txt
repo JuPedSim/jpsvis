@@ -68,7 +68,7 @@ set(VTK_USE_QT  ON)
 # Qt
 find_package(
         Qt5 5.14
-        COMPONENTS Widgets OpenGL Xml Core PrintSupport Gui Network
+        COMPONENTS Widgets Xml Core PrintSupport Gui Network
         REQUIRED)
 
 #**********************************************************
