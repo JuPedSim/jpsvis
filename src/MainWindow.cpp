@@ -874,9 +874,14 @@ bool MainWindow::addPedestrianGroup(int groupID,QString fileName)
          QString tt_file= wd + QDir::separator() + SaxParser::extractTrainTypeFileTXT(fileName);
          QString goal_file=wd + QDir::separator() + SaxParser::extractGoalFileTXT(fileName);
          QFileInfo check_file(source_file);
+         bool readSource = true;
+         bool readGoal = true;
+         bool readTrainTypes = true;
+         bool readTrainTimeTable = true;
          if( !(check_file.exists() && check_file.isFile()) )
         {
-             Debug::Warning("MainWindow::addPedestrianGroup: source name: <%s> not found!", source_file.toStdString().c_str());
+          //Debug::Warning("MainWindow::addPedestrianGroup: source name: <%s> not found!", source_file.toStdString().c_str());
+             readSource = false;
         }
          else
               Debug::Info("MainWindow::addPedestrianGroup: source name: <%s>", source_file.toStdString().c_str());
@@ -884,7 +889,8 @@ bool MainWindow::addPedestrianGroup(int groupID,QString fileName)
          check_file = goal_file;
          if( !(check_file.exists() && check_file.isFile()) )
         {
-             Debug::Warning("MainWindow::addPedestrianGroup: goal name: <%s> not found!", goal_file.toStdString().c_str());
+          //Debug::Warning("MainWindow::addPedestrianGroup: goal name: <%s> not found!", goal_file.toStdString().c_str());
+             readGoal = false;
         }
          else
               Debug::Info("MainWindow::addPedestrianGroup: goal name: <%s>", goal_file.toStdString().c_str());
@@ -893,7 +899,8 @@ bool MainWindow::addPedestrianGroup(int groupID,QString fileName)
          check_file = ttt_file;
          if( !(check_file.exists() && check_file.isFile()) )
         {
-             Debug::Warning("MainWindow::addPedestrianGroup: ttt name: <%s> not found!", ttt_file.toStdString().c_str());
+          //Debug::Warning("MainWindow::addPedestrianGroup: ttt name: <%s> not found!", ttt_file.toStdString().c_str());
+             readTrainTimeTable = false;
         }
          else
               Debug::Info("MainWindow::addPedestrianGroup: ttt name: <%s>", ttt_file.toStdString().c_str());
@@ -901,36 +908,48 @@ bool MainWindow::addPedestrianGroup(int groupID,QString fileName)
          check_file = tt_file;
          if( !(check_file.exists() && check_file.isFile()) )
         {
-             Debug::Warning("MainWindow::addPedestrianGroup: tt name: <%s> not found!", tt_file.toStdString().c_str());
+          //Debug::Warning("MainWindow::addPedestrianGroup: tt name: <%s> not found!", tt_file.toStdString().c_str());
+             readTrainTypes = false;
         }
          else
               Debug::Info("MainWindow::addPedestrianGroup: tt name: <%s>", tt_file.toStdString().c_str());
 
+         QXmlSimpleReader reader;
+         SaxParser handler(geometry,*dataset,&frameRate);
+         reader.setContentHandler(&handler);
         // ------ parsing sources
-        QFile file(source_file);
-        QXmlInputSource source(&file);
-        QXmlSimpleReader reader;
-        SaxParser handler(geometry,*dataset,&frameRate);
-        reader.setContentHandler(&handler);
-        reader.parse(source);
-        file.close();
+        if (readSource)
+          {
+            QFile file(source_file);
+            QXmlInputSource source(&file);            
+            reader.parse(source);
+            file.close();
+          }
         // -----
         // // ---- parsing goals
         // -----
-        QFile file2(goal_file);
-        QXmlInputSource source2(&file2);
-        reader.parse(source2);
-        file2.close();
-        // parsing trains
-        // train type
+        if(readGoal)
+          {
+            QFile file2(goal_file);
+            QXmlInputSource source2(&file2);
+            reader.parse(source2);
+            file2.close();
+          }
+            // parsing trains
+            // train type
         std::map<int, std::shared_ptr<TrainTimeTable> > trainTimeTable;
-        std::map<std::string, std::shared_ptr<TrainType> > trainTypes;
-        SaxParser::LoadTrainType(tt_file.toStdString(), trainTypes);
-        extern_trainTypes = trainTypes;
-
-        bool ret = SaxParser::LoadTrainTimetable(ttt_file.toStdString(), trainTimeTable);
-
-        extern_trainTimeTables = trainTimeTable;
+        std::map<std::string, std::shared_ptr<TrainType> > trainTypes;           
+        if(readTrainTypes)
+          {
+            SaxParser::LoadTrainType(tt_file.toStdString(), trainTypes);
+            extern_trainTypes = trainTypes;            
+            }
+        if(readTrainTimeTable)
+          {
+            bool ret = SaxParser::LoadTrainTimetable(ttt_file.toStdString(), trainTimeTable);
+            extern_trainTimeTables = trainTimeTable;
+          }
+        
         QString geofileName = SaxParser::extractGeometryFilenameTXT(fileName);
 
         std::tuple<Point, Point>  trackStartEnd;
