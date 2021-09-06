@@ -105,7 +105,7 @@ ver_string(__MINGW32__, __MINGW32_MAJOR_VERSION, __MINGW32_MINOR_VERSION);
 
 int main(int argc, char *argv[])
 {
-         Debug::Info("----\nJuPedSim - JPSvis\n");
+         Debug::Info("\n----\nJuPedSim - JPSvis\n");
          Debug::Info("Current date   : %s %s", __DATE__, __TIME__);
          Debug::Info("Version        : %s", JPSVIS_VERSION);
          Debug::Info("Compiler       : %s (%s)", true_cxx.c_str(), true_cxx_ver.c_str());

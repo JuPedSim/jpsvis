@@ -36,7 +36,6 @@
 
 #include "SystemSettings.h"
 #include "Debug.h"
-#include "qdebug.h"
 #include "QDateTime"
 #include "IO/OutputHandler.h"
 #include "./forms/Settings.h"
@@ -417,8 +416,7 @@ void SystemSettings::CreateLogfile()
     if(!QDir(outputDir).exists()) {
         QDir dir;
         if(!dir.mkpath (outputDir )) {
-            qDebug()<<"could not create directory: "<< outputDir;
-            qDebug()<<"could not create directory: "<< QDir::homePath();
+            Debug::Error("could not create directory: %s", outputDir.toStdString().c_str());
             outputDir=""; // current
         }
     }
@@ -437,7 +435,7 @@ void SystemSettings::DeleteLogfile()
     //first close the opened file
     delete Log;
     if(! QFile::remove(logfile)) {
-        qDebug()<<"he log file could not delete the file"<<Qt::endl;
+        Debug::Info("Could not delete logfile %s", logfile.toStdString().c_str());
     }
 }
 

@@ -140,7 +140,7 @@ void ThreadDataTransfer::run()
 void ThreadDataTransfer::slotHandleConnection()
 {
 
-    Debug::Messages("handling new connection");
+    Debug::Info("handling new connection");
 
     QTcpSocket *clientConnection = tcpServer->nextPendingConnection();
     connect(clientConnection, SIGNAL(disconnected()),
@@ -151,12 +151,12 @@ void ThreadDataTransfer::slotHandleConnection()
     connect(clientConnection, SIGNAL(error(QAbstractSocket::SocketError)),
             this, SLOT(displayError(QAbstractSocket::SocketError)));
     //Q_DECLARE_METATYPE( QAbstractSocket::SocketError );
-    Debug::Messages("juhuuuu");
+    Debug::Info("juhuuuu");
 }
 
 void ThreadDataTransfer::slotReadMessage()
 {
-    Debug::Messages("new post");
+    Debug::Info("new post");
     //slotProcessMessage();
 }
 
@@ -185,17 +185,17 @@ void ThreadDataTransfer::slotProcessMessage(QString& data)
 
     if(!header.isNull()) {
         parseHeaderNode(header);
-        Debug::Messages("header received and parsed");
+        Debug::Info("header received and parsed");
     }
     if(!shapes.isNull()) {
         parseShapeNode(shapes);
-        Debug::Messages("header received and parsed");
+        Debug::Info("header received and parsed");
     }
 
     if(!geometry.isNull()) {
         //emit signal_loadGeometry(data);
         geoData=data;
-        Debug::Messages("geometry received and parsed");
+        Debug::Info("geometry received and parsed");
         //parseGeometryNode(geometry);
     }
     if(!dataList.isEmpty()) {
@@ -379,12 +379,12 @@ void ThreadDataTransfer::slotDisplayError(QAbstractSocket::SocketError socketErr
 
 void ThreadDataTransfer::slotProcessPendingDatagrams()
 {
-    Debug::Messages("connected");
+    Debug::Info("connected");
     while (udpSocket->hasPendingDatagrams()) {
         QByteArray datagram;
         datagram.resize(udpSocket->pendingDatagramSize());
         udpSocket->readDatagram(datagram.data(), datagram.size());
-        //		Debug::Messages("%s",(const char *) datagram.data().c_str()));
+        //		Debug::Info("%s",(const char *) datagram.data().c_str()));
     }
 }
 
