@@ -283,8 +283,7 @@ MainWindow::MainWindow(QWidget *parent) :
                 //mayPlay=true;
 
             } else if(argument.startsWith("-")) {
-                const char* std=argument.toStdString().c_str();
-                Debug::Error("unknown options: %s",std);
+                Debug::Error("unknown options: %s", argument.toStdString().c_str());
                 Debug::Error("Usage: jpsvis [file1] [-2D] [-caption] [-online [port] ]");
             } else if(addPedestrianGroup(group,argument)) {
                 //slotHelpAbout();
