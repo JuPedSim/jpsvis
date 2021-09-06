@@ -104,7 +104,7 @@ public:
 private:
     static std::ostream &os;
     static Debug::LEVEL debugLevel;
-    static int MSG_Count;
+    static int INFO_Count;
     static int ERR_Count;
     static int WAR_Count;
 };

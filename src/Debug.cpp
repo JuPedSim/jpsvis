@@ -43,7 +43,7 @@ using namespace std;
 
 std::ostream& Debug::os=std::cerr;
 Debug::LEVEL Debug::debugLevel=Debug::ALL;
-int Debug::MSG_Count=0;
+int Debug::INFO_Count=0;
 int Debug::ERR_Count=0;
 int Debug::WAR_Count=0;
 
@@ -68,13 +68,12 @@ void Debug::setDebugLevel(Debug::LEVEL level)
     debugLevel=level;
 }
 
-void Debug::Info(const char *format, ...)
+void Debug::Messages(const char *format, ...)
 {
     switch (debugLevel) {
 
     case ALL:
     case INFO: {
-        MSG_Count++;
         char msg[256];
         va_list ap;
         va_start (ap, format);
@@ -93,20 +92,20 @@ void Debug::Info(const char *format, ...)
 
 }
 
-void Debug::Messages(const char *format, ...)
+void Debug::Info(const char *format, ...)
 {
     switch (debugLevel) {
 
     case ALL:
     case INFO: {
-        MSG_Count++;
+        INFO_Count++;
         char msg[256];
         va_list ap;
         va_start (ap, format);
         vsprintf (msg,format ,ap);
         va_end (ap);
 
-        os<<"Info ["<< std::setw(3) <<MSG_Count<<"]: "<<msg<<endl;
+        os<<"Info ["<< std::setw(3) <<INFO_Count<<"]: "<<msg<<endl;
     }
     break;
 
