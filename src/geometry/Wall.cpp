@@ -27,7 +27,7 @@
 
 
 #include "Wall.h"
-#include "../Debug.h"
+#include "../Log.h"
 using namespace std;
 
 /************************************************************
@@ -49,7 +49,7 @@ Wall::Wall(const Wall& orig) : Line(orig)
 
 void Wall::WriteToErrorLog() const
 {
-     Debug::Info("\t\tWALL: (%f, %f) -- (%f, %f)\n", GetPoint1().GetX(),
+     Log::Info("\t\tWALL: (%f, %f) -- (%f, %f)\n", GetPoint1().GetX(),
              GetPoint1().GetY(), GetPoint2().GetX(), GetPoint2().GetY());     
 }
 

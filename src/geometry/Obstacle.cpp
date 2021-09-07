@@ -27,7 +27,7 @@
 
 
 #include "Obstacle.h"
-#include "../Debug.h"
+#include "../Log.h"
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -255,8 +255,8 @@ bool Obstacle::ConvertLineToPoly()
           }
      }
      if ((tmpPoly[0] - point).Norm() > J_TOLERANZ) {         
-          Debug::Error("Obstacle::ConvertLineToPoly(): ID %d !!!\n", _id);          
-          Debug::Error("Distance between the points: %lf !!!\n", (tmpPoly[0] - point).Norm());         
+          Log::Error("Obstacle::ConvertLineToPoly(): ID %d !!!\n", _id);          
+          Log::Error("Distance between the points: %lf !!!\n", (tmpPoly[0] - point).Norm());         
           return false;
      }
      _poly = tmpPoly;
@@ -269,7 +269,7 @@ bool Obstacle::ConvertLineToPoly()
           {
                if(IsPartOfPolygon(ptw)==false)
                {
-                    Debug::Error("Edge was not used during polygon creation for obstacle: %s",w.toString().c_str());
+                    Log::Error("Edge was not used during polygon creation for obstacle: %s",w.toString().c_str());
                     return false;
                }
           }
@@ -321,7 +321,7 @@ const Point Obstacle::GetCentroid() const
 bool Obstacle::IsClockwise() const
 {
      if(_poly.size()<3) {
-          Debug::Error("You need at least 3 vertices to check for orientation.");
+          Log::Error("You need at least 3 vertices to check for orientation.");
           return false;
      }
 

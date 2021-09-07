@@ -31,7 +31,7 @@
 #include "../general/Macros.h"
 #include "Line.h"
 #include "../IO/OutputHandler.h"
-#include "../Debug.h"
+#include "../Log.h"
 
 #include  <cmath>
 #include  <sstream>
@@ -135,7 +135,7 @@ Point Line::NormalVec() const {
         /* Normieren */
         norm = sqrt(nx * nx + ny * ny);
         if (fabs(norm) < J_EPS) {
-            Debug::Error("Line::NormalVec() norm==0\n");
+            Log::Error("Line::NormalVec() norm==0\n");
             exit(EXIT_FAILURE);
         }
         nx /= norm;
@@ -394,11 +394,11 @@ bool Line::IntersectionWithCircle(const Point &centre, double radius /*cm for pe
     delta = b * b - 4 * a * c;
 
     if ((x1 == x2) && (y1 == y2)) {
-        Debug::Error("isLineCrossingCircle: Your line is a point");
+        Log::Error("isLineCrossingCircle: Your line is a point");
         return false;
     }
     if (delta < 0.0) {       
-        Debug::Error("there is a bug in 'isLineCrossingCircle', delta(%f) can t be <0 at this point.", delta);       
+        Log::Error("there is a bug in 'isLineCrossingCircle', delta(%f) can t be <0 at this point.", delta);       
         return false; //fixme
     }
 

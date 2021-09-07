@@ -29,7 +29,7 @@
 #include "Point.h"
 #include "Goal.h"
 #include "Wall.h"
-#include "../Debug.h"
+#include "../Log.h"
 
 using namespace std;
 
@@ -217,7 +217,7 @@ bool Goal::ConvertLineToPoly()
      if ((tmpPoly[0] - point).Norm() > J_TOLERANZ) {
           char tmp[CLENGTH];
           sprintf(tmp, "Goal::ConvertLineToPoly(): ID %d !!!\n", _id);
-          Debug::Error("%s", tmp);
+          Log::Error("%s", tmp);
           return false;
      }
      _poly = tmpPoly;

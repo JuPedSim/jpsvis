@@ -32,7 +32,7 @@
 #include "FrameElement.h"
 #include "Frame.h"
 #include "SyncData.h"
-#include "Debug.h"
+#include "Log.h"
 
 #include "geometry/JPoint.h"
 #include "geometry/FacilityGeometry.h"
@@ -682,30 +682,30 @@ double SaxParser::GetElevation(QString geometryFile, int roomId, int subroomId)
      QDomDocument doc("");
      QFile file(geometryFile);
      if (!file.open(QIODevice::ReadOnly)) {
-       Debug::Error("GetElevation: could not open the file: %s\n", geometryFile.toStdString().c_str());
+       Log::Error("GetElevation: could not open the file: %s\n", geometryFile.toStdString().c_str());
        exit(EXIT_FAILURE);
      }
      QString *errorCode = new QString();
      if (!doc.setContent(&file, errorCode)) {
           file.close();
-          Debug::Error(">> ErrorCode %d\n", errorCode);
+          Log::Error(">> ErrorCode %d\n", errorCode);
           exit(EXIT_FAILURE);
      }
      TiXmlDocument docGeo(geometryFile.toStdString());
      if (!docGeo.LoadFile()) {
-           Debug::Info("%s", docGeo.ErrorDesc());
-           Debug::Error("LoadGeometry: could not parse the geometry file %s\n", geometryFile.toStdString().c_str());
+           Log::Info("%s", docGeo.ErrorDesc());
+           Log::Error("LoadGeometry: could not parse the geometry file %s\n", geometryFile.toStdString().c_str());
            return -1;
      }
 
      TiXmlElement* xRootNode = docGeo.RootElement();
      if( ! xRootNode ) {
-           Debug::Error("Root element does not exist");
+           Log::Error("Root element does not exist");
            return -1;
      }
      TiXmlNode*  xRoomsNode = xRootNode->FirstChild("rooms");
      if (!xRoomsNode) {
-           Debug::Error("The geometry should have at least one room and one subroom");
+           Log::Error("The geometry should have at least one room and one subroom");
           return false;
      }
      for(TiXmlElement* xRoom = xRoomsNode->FirstChildElement("room"); xRoom;
@@ -736,8 +736,8 @@ std::tuple<Point, Point> SaxParser::GetTrackStartEnd(QString geometryFile, int t
      }
 
      // QString = QDir::cleanPath(wd + QDir::separator() + fileName);
-     Debug::Info("filename: <%s)", geometryFile.toStdString().c_str());
-     Debug::Info("wd: <%s>",wd.toStdString().c_str());
+     Log::Info("filename: <%s)", geometryFile.toStdString().c_str());
+     Log::Info("wd: <%s>",wd.toStdString().c_str());
 
 
      std::vector<Point> end_points;
@@ -747,20 +747,20 @@ std::tuple<Point, Point> SaxParser::GetTrackStartEnd(QString geometryFile, int t
      QDomDocument doc("");
      QFile file(geometryFile);
      if (!file.open(QIODevice::ReadOnly)) {
-       Debug::Error("GetTrackStartEnd: could not open the file: %s\n", geometryFile.toStdString().c_str());
+       Log::Error("GetTrackStartEnd: could not open the file: %s\n", geometryFile.toStdString().c_str());
        exit(EXIT_FAILURE);
      }
      QString *errorCode = new QString();
      if (!doc.setContent(&file, errorCode)) {
           file.close();
-          Debug::Error(">> ErrorCode: %d\n", errorCode);
+          Log::Error(">> ErrorCode: %d\n", errorCode);
           exit(EXIT_FAILURE);
      }
      QDomElement root= doc.firstChildElement("geometry");
      //only parsing the geometry node
      if(root.tagName()!="geometry"){
                  std::tuple<Point, Point> ret = std::make_tuple(Point(0,0), Point(0,0));
-                 Debug::Error("root %s is not geometry\n", root.tagName().toStdString().c_str());
+                 Log::Error("root %s is not geometry\n", root.tagName().toStdString().c_str());
                  return ret;
      }
 
@@ -820,7 +820,7 @@ std::tuple<Point, Point> SaxParser::GetTrackStartEnd(QString geometryFile, int t
 
 bool SaxParser::parseGeometryJPS(QString fileName, GeometryFactory& geoFac)
 {
-     Debug::Info( "Enter SaxParser::parseGeometryJPS with filename <%s>",fileName.toStdString().c_str());
+     Log::Info( "Enter SaxParser::parseGeometryJPS with filename <%s>",fileName.toStdString().c_str());
 
      double captionsColor=0;//red
      QDir fileDir(fileName);
@@ -836,8 +836,8 @@ bool SaxParser::parseGeometryJPS(QString fileName, GeometryFactory& geoFac)
      }
 
      // QString = QDir::cleanPath(wd + QDir::separator() + fileName);
-     Debug::Info("filename: <%s)", fileName.toStdString().c_str());
-     Debug::Info("wd: <%s>",wd.toStdString().c_str());
+     Log::Info("filename: <%s)", fileName.toStdString().c_str());
+     Log::Info("wd: <%s>",wd.toStdString().c_str());
      Building* building = new Building();
      string geometrypath = fileName.toStdString();
      building->SetProjectRootDir(wd.toStdString());
@@ -992,7 +992,7 @@ bool SaxParser::parseGeometryJPS(QString fileName, GeometryFactory& geoFac)
                          z1 = tr->GetSubRoom2()->GetElevation(p1);
                     }
                     else
-                         Debug::Error("Can not calculate elevations for transition %d:%s. Both subrooms are not defined\n", tr->GetID(), tr->GetCaption().c_str());
+                         Log::Error("Can not calculate elevations for transition %d:%s. Both subrooms are not defined\n", tr->GetID(), tr->GetCaption().c_str());
 
                     geometry->addDoor(p1._x*FAKTOR, p1._y*FAKTOR, z1*FAKTOR, p2._x*FAKTOR, p2._y*FAKTOR,z2*FAKTOR);
 
@@ -1013,31 +1013,31 @@ bool SaxParser::parseGeometryJPS(QString fileName, GeometryFactory& geoFac)
 // not used yet!!
 bool SaxParser::getSourcesTXT(QString &filename)
 {
-    Debug::Info("Enter getSourcesTXT with %s\n", filename.toStdString().c_str());
+    Log::Info("Enter getSourcesTXT with %s\n", filename.toStdString().c_str());
 
      std::string  sfilename = filename.toStdString();
      TiXmlDocument docSource(sfilename);
      if (!docSource.LoadFile()) {
-          Debug::Error("%s", docSource.ErrorDesc());
-          Debug::Error("could not parse the sources file.");
+          Log::Error("%s", docSource.ErrorDesc());
+          Log::Error("could not parse the sources file.");
           return false;
      }
 
      TiXmlElement* xRootNodeSource = docSource.RootElement();
      if (!xRootNodeSource) {
-          Debug::Error("Root element does not exist in source file.");
+          Log::Error("Root element does not exist in source file.");
           return false;
      }
      if (xRootNodeSource->ValueStr() != "JPScore") {
-          Debug::Error("Root element value in source file is not 'JPScore'.");
+          Log::Error("Root element value in source file is not 'JPScore'.");
           return false;
      }
      TiXmlNode* xSourceF = xRootNodeSource->FirstChild("agents_sources");
      if (!xSourceF) {
-          Debug::Error("No agents_sources tag in file not found.");
+          Log::Error("No agents_sources tag in file not found.");
           return false;
      }
-     Debug::Info("Loading sources from file");
+     Log::Info("Loading sources from file");
      TiXmlNode* xSourceNodeF = xSourceF->FirstChild("source");
      if(xSourceNodeF)
      {
@@ -1080,11 +1080,11 @@ QString SaxParser::extractSourceFileTXT(QString &filename)
      } // if open
      if(extracted_source_name=="")
      {
-          Debug::Warning("Could not extract source file!");
+          Log::Warning("Could not extract source file!");
      }
 
      else
-          Debug::Info("Extracted source from TXT file <%s>", extracted_source_name.toStdString().c_str());
+          Log::Info("Extracted source from TXT file <%s>", extracted_source_name.toStdString().c_str());
      return extracted_source_name;
 }
 
@@ -1110,11 +1110,11 @@ QString SaxParser::extractTrainTypeFileTXT(QString &filename)
      } // if open
      if(extracted_tt_name=="")
      {
-          Debug::Warning("Could not extract trainType file!");
+          Log::Warning("Could not extract trainType file!");
      }
 
      else
-          Debug::Info("Extracted trainType from TXT file <%s>", extracted_tt_name.toStdString().c_str());
+          Log::Info("Extracted trainType from TXT file <%s>", extracted_tt_name.toStdString().c_str());
      return extracted_tt_name;
 }
 
@@ -1140,11 +1140,11 @@ QString SaxParser::extractTrainTimeTableFileTXT(QString &filename)
      } // if open
      if(extracted_ttt_name=="")
      {
-          Debug::Warning("Could not extract trainTimeTable file!");
+          Log::Warning("Could not extract trainTimeTable file!");
      }
 
      else
-          Debug::Info("Extracted trainTimeTable from TXT file <%s>", extracted_ttt_name.toStdString().c_str());
+          Log::Info("Extracted trainTimeTable from TXT file <%s>", extracted_ttt_name.toStdString().c_str());
      return extracted_ttt_name;
 }
 
@@ -1172,11 +1172,11 @@ QString SaxParser::extractGoalFileTXT(QString &filename)
      } // if open
      if(extracted_goal_name=="")
      {
-          Debug::Warning("Could not extract goal file!");
+          Log::Warning("Could not extract goal file!");
      }
 
      else
-          Debug::Info("Extracted goal from TXT file <%s>", extracted_goal_name.toStdString().c_str());
+          Log::Info("Extracted goal from TXT file <%s>", extracted_goal_name.toStdString().c_str());
      return extracted_goal_name;
 }
 
@@ -1204,12 +1204,12 @@ QString SaxParser::extractGeometryFilenameTXT(QString &filename)
      } // if open
      if(extracted_geo_name=="")
      {
-          Debug::Warning("Could not extract geometry file!");
+          Log::Warning("Could not extract geometry file!");
 //          extracted_geo_name = "geo.xml";
      }
 
      else
-          Debug::Info("Extracted geometry from TXT file <%s>", extracted_geo_name.toStdString().c_str());
+          Log::Info("Extracted geometry from TXT file <%s>", extracted_geo_name.toStdString().c_str());
      return extracted_geo_name;
 }
 
@@ -1218,7 +1218,7 @@ QString SaxParser::extractGeometryFilenameTXT(QString &filename)
 
 bool SaxParser::ParseTxtFormat(const QString &fileName, SyncData* dataset, double * fps)
 {
-     Debug::Info("parsing txt trajectory <%s> ", fileName.toStdString().c_str());
+     Log::Info("parsing txt trajectory <%s> ", fileName.toStdString().c_str());
      *fps=16;//default value
      QFile inputFile(fileName);
      if (inputFile.open(QIODevice::ReadOnly))
@@ -1251,7 +1251,7 @@ bool SaxParser::ParseTxtFormat(const QString &fileName, SyncData* dataset, doubl
                          if(line.split(":")[0].contains("framerate",Qt::CaseInsensitive))
                          {
                               *fps = line.split(":")[1].toDouble();
-                              Debug::Info("Frame rate  <%.0f>", *fps);
+                              Log::Info("Frame rate  <%.0f>", *fps);
                          }
                     }
                     continue;
@@ -1307,7 +1307,7 @@ bool SaxParser::ParseTxtFormat(const QString &fileName, SyncData* dataset, doubl
                     if (once) // first frame we get
                     {
                          minFrame =  frameID;
-                         Debug::Info("minFrame =  %d\n", minFrame);
+                         Log::Info("minFrame =  %d\n", minFrame);
                          once = 0;
                     }
                     // std::cout << ">> minFrame =  " << minFrame << " frame " << frameID<< "\n";
@@ -1320,18 +1320,18 @@ bool SaxParser::ParseTxtFormat(const QString &fileName, SyncData* dataset, doubl
                        line.contains("centimetre", Qt::CaseInsensitive))
                     {
                          unitFactor=0.01;
-                         Debug::Info("unit centimetre detected");
+                         Log::Info("unit centimetre detected");
                     }
                     else
                          if(line.contains("meter", Qt::CaseInsensitive)||
                             line.contains("metre", Qt::CaseInsensitive))
                          {
                               unitFactor=1;
-                              Debug::Info("unit metre detected");
+                              Log::Info("unit metre detected");
                          }
                          else
                          {
-                              Debug::Warning("Ignoring line: <%s>",line.toStdString().c_str());
+                              Log::Warning("Ignoring line: <%s>",line.toStdString().c_str());
                          }
                     continue;//next line
                     break;
@@ -1365,7 +1365,7 @@ bool SaxParser::ParseTxtFormat(const QString &fileName, SyncData* dataset, doubl
           }
 
           inputFile.close();
-          Debug::Info("%d frames added!", dataset->GetFrames().size());
+          Log::Info("%d frames added!", dataset->GetFrames().size());
           //construct the polydata
           for( const auto & frame:dataset->GetFrames())
           {
@@ -1374,7 +1374,7 @@ bool SaxParser::ParseTxtFormat(const QString &fileName, SyncData* dataset, doubl
      }
      else
      {
-          Debug::Error("could not open the file  <%s>", fileName.toStdString().c_str());
+          Log::Error("could not open the file  <%s>", fileName.toStdString().c_str());
           return false;
      }
      return true;
@@ -1389,7 +1389,7 @@ bool SaxParser::ParseGradientFieldVTK(QString fileName, GeometryFactory& geoFac)
           fileName=wd+"/"+fileName;
      }
 
-     Debug::Info("Opening the gradient field: %s", fileName.toStdString().c_str());
+     Log::Info("Opening the gradient field: %s", fileName.toStdString().c_str());
      // Read the file
      VTK_CREATE(vtkStructuredPointsReader, reader);
      reader->SetFileName(fileName.toStdString().c_str());
@@ -1442,7 +1442,7 @@ void SaxParser::InitHeader(int major, int minor, int patch)
           _jps_ellipseColor=QString("ellipseColor");
      }
      if(major!=0) {
-          Debug::Info("unsupported header version: %d.%d.%d\n", major, minor, patch);
+          Log::Info("unsupported header version: %d.%d.%d\n", major, minor, patch);
           exit(EXIT_FAILURE);
      }
 }
@@ -1452,17 +1452,17 @@ bool SaxParser::LoadTrainTimetable(std::string Filename, std::map<int, std::shar
 {
      TiXmlDocument docTTT(Filename);
      if (!docTTT.LoadFile()) {
-          Debug::Error("%s", docTTT.ErrorDesc());
-          Debug::Error("could not parse the train timetable file.");
+          Log::Error("%s", docTTT.ErrorDesc());
+          Log::Error("could not parse the train timetable file.");
           return false;
      }
      TiXmlElement* xTTT = docTTT.RootElement();
      if (!xTTT) {
-          Debug::Error("Root element does not exist in TTT file.");
+          Log::Error("Root element does not exist in TTT file.");
           return false;
      }
      if (xTTT->ValueStr() != "train_time_table") {
-          Debug::Error("Parsing train timetable file. Root element value is not 'train_time_table'.");
+          Log::Error("Parsing train timetable file. Root element value is not 'train_time_table'.");
           return false;
      }
      for (TiXmlElement* e = xTTT->FirstChildElement("train"); e;
@@ -1470,14 +1470,14 @@ bool SaxParser::LoadTrainTimetable(std::string Filename, std::map<int, std::shar
           std::shared_ptr<TrainTimeTable> TTT = parseTrainTimeTableNode(e);
           if (TTT) { // todo: maybe get pointer to train
                if (trainTimeTables.count(TTT->id)!=0) {
-                    Debug::Warning("Duplicate id for train time table found [%d]",TTT->id);
+                    Log::Warning("Duplicate id for train time table found [%d]",TTT->id);
                     exit(EXIT_FAILURE);
                }
                // get track start 
                trainTimeTables[TTT->id] = TTT;
           }
           else {
-          Debug::Error("Something went south!\n") ;
+          Log::Error("Something went south!\n") ;
           }
      }
      return true;
@@ -1489,17 +1489,17 @@ bool   SaxParser::LoadTrainType(std::string Filename, std::map<std::string, std:
 
      TiXmlDocument docTT(Filename);
      if (!docTT.LoadFile()) {
-          Debug::Error("%s", docTT.ErrorDesc());
-          Debug::Error("could not parse the train type file.");
+          Log::Error("%s", docTT.ErrorDesc());
+          Log::Error("could not parse the train type file.");
           return false;
      }
      TiXmlElement* xTT = docTT.RootElement();
      if (!xTT) {
-          Debug::Error("Root element does not exist in TT file.");
+          Log::Error("Root element does not exist in TT file.");
           return false;
      }
      if (xTT->ValueStr() != "train_type") {
-          Debug::Error("Parsing train type file. Root element value is not 'train_type'.");
+          Log::Error("Parsing train type file. Root element value is not 'train_type'.");
           return false;
      }
      for (TiXmlElement* e = xTT->FirstChildElement("train"); e;
@@ -1507,7 +1507,7 @@ bool   SaxParser::LoadTrainType(std::string Filename, std::map<std::string, std:
           std::shared_ptr<TrainType> TT = parseTrainTypeNode(e);
           if (TT) {
                 if (trainTypes.count(TT->_type.c_str())!=0) {
-                    Debug::Warning("Duplicate type for train found [%s]",TT->_type.c_str());
+                    Log::Warning("Duplicate type for train found [%s]",TT->_type.c_str());
                }
                trainTypes[TT->_type] = TT;
           }
@@ -1521,7 +1521,7 @@ bool   SaxParser::LoadTrainType(std::string Filename, std::map<std::string, std:
 
 std::shared_ptr<TrainTimeTable> SaxParser::parseTrainTimeTableNode(TiXmlElement * e)
 {
-     Debug::Info("Loading train time table NODE");
+     Log::Info("Loading train time table NODE");
      // std::string caption = xmltoa(e->Attribute("caption"), "-1");
      int id = xmltoi(e->Attribute("id"), -1);
      int track_id = xmltoi(e->Attribute("track_id"), -1);
@@ -1543,15 +1543,15 @@ std::shared_ptr<TrainTimeTable> SaxParser::parseTrainTimeTableNode(TiXmlElement 
      float arrival_time = xmltof(e->Attribute("arrival_time"), -1);
      float departure_time = xmltof(e->Attribute("departure_time"), -1);
      // @todo: check these values for correctness e.g. arrival < departure
-     Debug::Info("Train time table:");
-     Debug::Info("   id: %d", id);
-     Debug::Info("   type: %s", type.c_str());
-     Debug::Info("   room_id: %d", room_id);
-     Debug::Info("   subroom_id: %d", subroom_id);
-     Debug::Info("   track_id: %d", track_id);
-     Debug::Info("   train_offset: %.2f", train_offset);
-     Debug::Info("   arrival_time: %.2f", arrival_time);
-     Debug::Info("departure_time: %.2f", departure_time);
+     Log::Info("Train time table:");
+     Log::Info("   id: %d", id);
+     Log::Info("   type: %s", type.c_str());
+     Log::Info("   room_id: %d", room_id);
+     Log::Info("   subroom_id: %d", subroom_id);
+     Log::Info("   track_id: %d", track_id);
+     Log::Info("   train_offset: %.2f", train_offset);
+     Log::Info("   arrival_time: %.2f", arrival_time);
+     Log::Info("departure_time: %.2f", departure_time);
      // Debug::Info("Reversed: {}", reversed);
      std::shared_ptr<TrainTimeTable> trainTimeTab = std::make_shared<TrainTimeTable>(
           TrainTimeTable{
@@ -1580,19 +1580,19 @@ std::shared_ptr<TrainTimeTable> SaxParser::parseTrainTimeTableNode(TiXmlElement 
 }
 std::shared_ptr<TrainType> SaxParser::parseTrainTypeNode(TiXmlElement * node)
 {
-      Debug::Info("Loading train type");
+      Log::Info("Loading train type");
 
     std::string type = xmltoa(node->Attribute("type"), "NO_TYPE");
     if(type == "NO_TYPE") {
-          Debug::Warning("No train type name given. Use 'NO_TYPE' instead.");
+          Log::Warning("No train type name given. Use 'NO_TYPE' instead.");
     }
-    Debug::Info("type: {}", type.c_str());
+    Log::Info("type: {}", type.c_str());
 
     int agents_max = xmltoi(node->Attribute("agents_max"), std::numeric_limits<int>::max());
     if(agents_max == std::numeric_limits<int>::max()) {
-          Debug::Warning("No agents_max given. Set to default: {}.", agents_max);
+          Log::Warning("No agents_max given. Set to default: {}.", agents_max);
     }
-    Debug::Info("max Agents: {}", agents_max);
+    Log::Info("max Agents: {}", agents_max);
 
     // Read and check if correct value
     double length = -std::numeric_limits<double>::infinity();
@@ -1601,14 +1601,14 @@ std::shared_ptr<TrainType> SaxParser::parseTrainTypeNode(TiXmlElement * node)
            value >= 0.) {
             length = value;
         } else {
-              Debug::Warning("{}: input for length should be non-negative {}. Skip entry.", type.c_str(), value);
+              Log::Warning("{}: input for length should be non-negative {}. Skip entry.", type.c_str(), value);
             return nullptr;
         }
     } else {
-          Debug::Warning("{}: input for length not found. Skip entry.", type.c_str());
+          Log::Warning("{}: input for length not found. Skip entry.", type.c_str());
         return nullptr;
     }
-    Debug::Info("length: {}", length);
+    Log::Info("length: {}", length);
 
 
     std::vector<TrainDoor> doors;
@@ -1621,12 +1621,12 @@ std::shared_ptr<TrainType> SaxParser::parseTrainTypeNode(TiXmlElement * node)
                value >= 0.) {
                 distance = value;
             } else {
-                Debug::Warning(
+                Log::Warning(
                       "{}: input for distance should be non-negative {}. Skip entry.", type.c_str(), value);
                 continue;
             }
         } else {
-              Debug::Warning("{}: input for distance not found. Skip entry.", type.c_str());
+              Log::Warning("{}: input for distance not found. Skip entry.", type.c_str());
             continue;
         }
 
@@ -1637,12 +1637,12 @@ std::shared_ptr<TrainType> SaxParser::parseTrainTypeNode(TiXmlElement * node)
                value > 0.) {
                 width = value;
             } else {
-                Debug::Warning(
+                Log::Warning(
                       "{}: input for width should be non-negative {}. Skip entry.", type.c_str(), value);
                 continue;
             }
         } else {
-              Debug::Warning("{}: input for width not found. Skip entry.", type.c_str());
+              Log::Warning("{}: input for width not found. Skip entry.", type.c_str());
             continue;
         }
 
@@ -1653,7 +1653,7 @@ std::shared_ptr<TrainType> SaxParser::parseTrainTypeNode(TiXmlElement * node)
                value > 0.) {
                 flow = value;
             } else {
-                Debug::Warning(
+                Log::Warning(
                       "{}: input for flow should be >0 but is {:5.2}. Skip entry.", type.c_str(), value);
                 continue;
             }
@@ -1663,13 +1663,13 @@ std::shared_ptr<TrainType> SaxParser::parseTrainTypeNode(TiXmlElement * node)
     }
 
     if(doors.empty()) {
-          Debug::Error("Train {}: no doors given. Train will be ignored.", type.c_str());
+          Log::Error("Train {}: no doors given. Train will be ignored.", type.c_str());
         return nullptr;
     }
 
-    Debug::Info("number of doors: {}", doors.size());
+    Log::Info("number of doors: {}", doors.size());
     for(const auto & d : doors) {
-        Debug::Info(
+        Log::Info(
             "Door:\tdistance: {%5.2f}\twidth: {%5.2f}\toutflow: {%5.2f}",
             d._distance,
             d._width,

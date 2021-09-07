@@ -33,7 +33,7 @@
 #include "SubRoom.h"
 #include "Transition.h"
 #include "Hline.h"
-#include "../Debug.h"
+#include "../Log.h"
 
 #ifdef _SIMULATOR
 #include "../pedestrian/Pedestrian.h"
@@ -155,16 +155,16 @@ bool SubRoom::AddWall(const Wall& w)
      {
           if(w==w1)
           {
-               Debug::Error("Duplicate wall found in Room/Subroom %d/%d  %s",_roomID,_id ,w.toString().c_str());
-               Debug::Error("will not be added");
+               Log::Error("Duplicate wall found in Room/Subroom %d/%d  %s",_roomID,_id ,w.toString().c_str());
+               Log::Error("will not be added");
                return false;
           }
      }
      //checking for wall chunks.
      if(w.Length()<J_TOLERANZ)
      {
-          Debug::Error("Wall too small (length = %lf) found in Room/Subroom %d/%d  %s",w.Length(),_roomID,_id ,w.toString().c_str());
-          Debug::Error("will not be added");
+          Log::Error("Wall too small (length = %lf) found in Room/Subroom %d/%d  %s",w.Length(),_roomID,_id ,w.toString().c_str());
+          Log::Error("will not be added");
           return false;
      }
      _walls.push_back(w);
@@ -210,7 +210,7 @@ void SubRoom::AddHline(Hline* line)
      {
           if (line->GetID()==_hlines[i]->GetID())
           {
-               Debug::Info("skipping duplicate hline [%d] with id [%d]",_id,line->GetID());
+               Log::Info("skipping duplicate hline [%d] with id [%d]",_id,line->GetID());
                return;
           }
      }
@@ -258,12 +258,12 @@ void SubRoom::RemoveGoalID(int ID)
 {
      for (unsigned int i=0; i<_goalIDs.size(); i++) {
           if(_goalIDs[i]==ID) {
-               Debug::Info("Removing goal");
+               Log::Info("Removing goal");
                _goalIDs.erase(_goalIDs.begin()+i);
                return;
           }
      }
-     Debug::Info("There is no goal with that id to remove");
+     Log::Info("There is no goal with that id to remove");
 }
 
 
@@ -469,8 +469,8 @@ bool SubRoom::CheckObstacles()
           {
                if(obst->IntersectWithLine(wall))
                {
-                    Debug::Error("the obstacle id [%d] is intersection with subroom [%d]",obst->GetId(),_id);
-                    Debug::Error("     : \tthe triangulation will not work.");
+                    Log::Error("the obstacle id [%d] is intersection with subroom [%d]",obst->GetId(),_id);
+                    Log::Error("     : \tthe triangulation will not work.");
                     return false;
                }
           }
@@ -498,16 +498,16 @@ bool SubRoom::SanityCheck()
      {
           if((IsConvex()==false) && (_hlines.size()==0))
           {
-            Debug::Warning("Room [%d] Subroom [%d] is not convex!",_roomID,_id);
-            Debug::Warning("you might consider adding extra hlines in your routing.xml file");
+            Log::Warning("Room [%d] Subroom [%d] is not convex!",_roomID,_id);
+            Log::Warning("you might consider adding extra hlines in your routing.xml file");
           } else {
                // everything is fine
           }
      } else {
           if(_hlines.size()==0)
           {
-            Debug::Warning("you have obstacles in room [%d] Subroom [%d]!",_roomID,_id);
-            Debug::Warning("you might consider adding extra hlines in your routing.xml file");
+            Log::Warning("you have obstacles in room [%d] Subroom [%d]!",_roomID,_id);
+            Log::Warning("you might consider adding extra hlines in your routing.xml file");
           } else {
                // everything is fine
           }
@@ -522,7 +522,7 @@ bool SubRoom::SanityCheck()
                if (w1==w2) continue;
                if(w1.Overlapp(w2))
                {
-                    Debug::Error("Overlapping between walls %s and %s ",w1.toString().c_str(),w2.toString().c_str());
+                    Log::Error("Overlapping between walls %s and %s ",w1.toString().c_str(),w2.toString().c_str());
                     exit(EXIT_FAILURE);
                     //return false;
                }
@@ -533,7 +533,7 @@ bool SubRoom::SanityCheck()
           {
                if(w1.Overlapp(*hline))
                {
-                    Debug::Error("Overlapping between wall %s and  Hline %s ",w1.toString().c_str(),hline->toString().c_str());
+                    Log::Error("Overlapping between wall %s and  Hline %s ",w1.toString().c_str(),hline->toString().c_str());
                     exit(EXIT_FAILURE);
                     //return false;
                }
@@ -543,7 +543,7 @@ bool SubRoom::SanityCheck()
           {
                if(w1.Overlapp(*c))
                {
-                    Debug::Error("Overlapping between wall %s and  crossing %s ",w1.toString().c_str(),c->toString().c_str());
+                    Log::Error("Overlapping between wall %s and  crossing %s ",w1.toString().c_str(),c->toString().c_str());
                     exit(EXIT_FAILURE);
                }
                connected=connected || w1.ShareCommonPointWith(*c);
@@ -553,7 +553,7 @@ bool SubRoom::SanityCheck()
           {
                if(w1.Overlapp(*t))
                {
-                    Debug::Error("Overlapping between wall %s and  transition %s ",w1.toString().c_str(),t->toString().c_str());
+                    Log::Error("Overlapping between wall %s and  transition %s ",w1.toString().c_str(),t->toString().c_str());
                     exit(EXIT_FAILURE);
                }
                connected=connected || w1.ShareCommonPointWith(*t);
@@ -561,7 +561,7 @@ bool SubRoom::SanityCheck()
 
           if(!connected)
           {
-               Debug::Error("loose wall found %s  in Room/Subroom %d/%d",w1.toString().c_str(),_roomID,_id);
+               Log::Error("loose wall found %s  in Room/Subroom %d/%d",w1.toString().c_str(),_roomID,_id);
                exit(EXIT_FAILURE);
           }
      }
@@ -573,7 +573,7 @@ bool SubRoom::SanityCheck()
           {
                if(h->Overlapp(*c))
                {
-                    Debug::Error("Overlapping between hline %s and  crossing %s ",h->toString().c_str(),c->toString().c_str());
+                    Log::Error("Overlapping between hline %s and  crossing %s ",h->toString().c_str(),c->toString().c_str());
                     exit(EXIT_FAILURE);
                }
           }
@@ -585,7 +585,7 @@ bool SubRoom::SanityCheck()
           {
                if(h->Overlapp(*t))
                {
-                   Debug::Error("Overlapping between hline %s and  transition %s ",h->toString().c_str(),t->toString().c_str());
+                   Log::Error("Overlapping between hline %s and  transition %s ",h->toString().c_str(),t->toString().c_str());
                     exit(EXIT_FAILURE);                   
                }
           }
@@ -597,7 +597,7 @@ bool SubRoom::SanityCheck()
           {
                if(c->Overlapp(*t))
                {
-                    Debug::Error("Overlapping between crossing %s and  transition %s ",c->toString().c_str(),t->toString().c_str());
+                    Log::Error("Overlapping between crossing %s and  transition %s ",c->toString().c_str(),t->toString().c_str());
                     exit(EXIT_FAILURE);
                }
           }
@@ -614,8 +614,8 @@ bool SubRoom::IsConvex()
      unsigned int neg=0;
 
      if(hsize==0) {
-          Debug::Warning("cannot check empty polygon for convexification");
-          Debug::Warning("Did you forget to tall ConvertLineToPoly() ?");
+          Log::Warning("cannot check empty polygon for convexification");
+          Log::Warning("Did you forget to tall ConvertLineToPoly() ?");
           return false;
      }
 
@@ -646,7 +646,7 @@ bool SubRoom::IsConvex()
 bool SubRoom::IsClockwise()
 {
      if(_poly.size()<3) {
-          Debug::Error("You need at least 3 vertices to check for orientation. Subroom ID [%d]");
+          Log::Error("You need at least 3 vertices to check for orientation. Subroom ID [%d]");
           return false;
      }
 
@@ -779,7 +779,7 @@ string NormalSubRoom::WritePolyLine() const
 
 void NormalSubRoom::WriteToErrorLog() const
 {
-     Debug::Info("Normal SubRoom:\n");
+     Log::Info("Normal SubRoom:\n");
      for(auto&& w: _walls)
      {
           w.WriteToErrorLog();
@@ -803,7 +803,7 @@ bool NormalSubRoom::ConvertLineToPoly(const vector<Line*>& goals)
 
      if(Overlapp(goals))
      {
-          Debug::Error("Overlapping between walls and goals");
+          Log::Error("Overlapping between walls and goals");
           return false;
      }
 
@@ -829,10 +829,10 @@ bool NormalSubRoom::ConvertLineToPoly(const vector<Line*>& goals)
           }
      }
      if ((tmpPoly[0] - point).Norm() > J_TOLERANZ) {         
-          Debug::Error("NormalSubRoom::ConvertLineToPoly(): SubRoom %d Room %d Anfangspunkt ungleich Endpunkt!!!\n"
+          Log::Error("NormalSubRoom::ConvertLineToPoly(): SubRoom %d Room %d Anfangspunkt ungleich Endpunkt!!!\n"
                     "\t(%f, %f) != (%f, %f)\n", GetSubRoomID(), GetRoomID(), tmpPoly[0].GetX(), tmpPoly[0].GetY(), point.GetX(),
                     point.GetY());         
-          Debug::Error("Distance between the points: %lf !!!\n", (tmpPoly[0] - point).Norm());         
+          Log::Error("Distance between the points: %lf !!!\n", (tmpPoly[0] - point).Norm());         
           return false;
      }
      _poly = tmpPoly;
@@ -845,7 +845,7 @@ bool NormalSubRoom::ConvertLineToPoly(const vector<Line*>& goals)
            {
                 if(IsPartOfPolygon(ptw)==false)
                 {
-                  Debug::Error("Wall was not used during polygon creation for subroom: %s",w.toString().c_str());                    
+                  Log::Error("Wall was not used during polygon creation for subroom: %s",w.toString().c_str());                    
                 }
            }
       }
@@ -857,7 +857,7 @@ bool NormalSubRoom::ConvertLineToPoly(const vector<Line*>& goals)
           {
                if(IsPartOfPolygon(ptw)==false)
                {
-                 Debug::Error("goal was not used during polygon creation for subroom: %s",g->toString().c_str());                    
+                 Log::Error("goal was not used during polygon creation for subroom: %s",g->toString().c_str());                    
                }
           }
      }
@@ -1045,7 +1045,7 @@ string Stair::WritePolyLine() const
 }
 void Stair::WriteToErrorLog() const
 {
-     Debug::Info("Stair:\n");
+     Log::Info("Stair:\n");
      for(auto&& w: _walls)
      {
           w.WriteToErrorLog();
@@ -1094,7 +1094,7 @@ bool Stair::ConvertLineToPoly(const vector<Line*>& goals)
 
      if(Overlapp(goals))
      {
-          Debug::Error("Overlapping between walls and goals");
+          Log::Error("Overlapping between walls and goals");
           return false;
      }
 
@@ -1131,13 +1131,13 @@ bool Stair::ConvertLineToPoly(const vector<Line*>& goals)
           y1 = firstOtherPoint->GetY();
           x2 = aktPoint->GetX();
           y2 = aktPoint->GetY();
-          Debug::Error("Stair::ConvertLineToPoly(): SubRoom %d Room %d Anfangspunkt ungleich Endpunkt!!!\n"
+          Log::Error("Stair::ConvertLineToPoly(): SubRoom %d Room %d Anfangspunkt ungleich Endpunkt!!!\n"
                     "\t(%f, %f) != (%f, %f)\n", GetSubRoomID(), GetRoomID(), x1, y1, x2, y2);         
           return false;
      }
 
      if (orgPoly.size() != 4) {         
-          Debug::Error("Stair::ConvertLineToPoly(): Stair %d Room %d ist kein Viereck!!!\n"
+          Log::Error("Stair::ConvertLineToPoly(): Stair %d Room %d ist kein Viereck!!!\n"
                     "Anzahl Ecken: %d\n", GetSubRoomID(), (int)GetRoomID(), (int)orgPoly.size());         
           return false;
      }

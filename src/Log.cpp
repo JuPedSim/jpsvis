@@ -31,7 +31,7 @@
 */
 
 
-#include "Debug.h"
+#include "Log.h"
 
 #include <fstream>
 #include <iostream>
@@ -41,34 +41,34 @@
 
 using namespace std;
 
-std::ostream& Debug::os=std::cerr;
-Debug::LEVEL Debug::debugLevel=Debug::ALL;
-int Debug::INFO_Count=0;
-int Debug::ERR_Count=0;
-int Debug::WAR_Count=0;
+std::ostream& Log::os=std::cerr;
+Log::LEVEL Log::debugLevel=Log::ALL;
+int Log::INFO_Count=0;
+int Log::ERR_Count=0;
+int Log::WAR_Count=0;
 
-Debug::Debug()
+Log::Log()
 {
 
 }
 
-Debug::~Debug()
+Log::~Log()
 {
 
 }
 
 
-void Debug::setOutputStream(std::ostream &osl )
+void Log::setOutputStream(std::ostream &osl )
 {
     os.rdbuf(osl.rdbuf());
 }
 
-void Debug::setDebugLevel(Debug::LEVEL level)
+void Log::setDebugLevel(Log::LEVEL level)
 {
     debugLevel=level;
 }
 
-void Debug::Messages(const char *format, ...)
+void Log::Messages(const char *format, ...)
 {
     switch (debugLevel) {
 
@@ -92,7 +92,7 @@ void Debug::Messages(const char *format, ...)
 
 }
 
-void Debug::Info(const char *format, ...)
+void Log::Info(const char *format, ...)
 {
     switch (debugLevel) {
 
@@ -117,7 +117,7 @@ void Debug::Info(const char *format, ...)
 
 }
 
-void Debug::Warning(const char *format, ...)
+void Log::Warning(const char *format, ...)
 {
 
     switch (debugLevel) {
@@ -142,7 +142,7 @@ os<<"Warning ["<< std::setw(3)<<WAR_Count<<"]: "<<msg<<endl;
 }
 
 
-void Debug::Error(const char *format, ...)
+void Log::Error(const char *format, ...)
 {
 
     switch (debugLevel) {

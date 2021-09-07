@@ -28,7 +28,7 @@
 
 #include "Hline.h"
 #include "SubRoom.h"
-#include "../Debug.h"
+#include "../Log.h"
 using namespace std;
 
 Hline::Hline()
@@ -111,7 +111,7 @@ void Hline::WriteToErrorLog() const
      sprintf(tmp, "\t\t\t\tRoom: %d <-> SubRoom: %d\n", _room1->GetID(),
              _subRoom1->GetSubRoomID());
      s.append(tmp);
-     Debug::Info("%s", s.c_str());
+     Log::Info("%s", s.c_str());
 }
 
 // TraVisTo Ausgabe
