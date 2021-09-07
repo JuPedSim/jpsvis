@@ -221,7 +221,7 @@ set( RCS
         forms/icons.qrc
 )
 
-target_sources(jpsvis PRIVATE ${SRCS} ${HDR} ${UIS} ${HDR})
+target_sources(jpsvis PRIVATE ${SRCS} ${HDR} ${UIS} ${HDR} ${RCS})
 
 target_compile_definitions(jpsvis PUBLIC
         JPSVIS_VERSION="${PROJECT_VERSION}"
