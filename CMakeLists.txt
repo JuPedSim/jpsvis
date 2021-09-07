@@ -4,7 +4,7 @@
 # -DBUILD_TESTING=ON (default OFF)
 #--------------------------------------------------------------------------
 cmake_minimum_required(VERSION 3.16)
-project(jpsvis LANGUAGES CXX VERSION 0.8.3)
+project(jpsvis LANGUAGES CXX C VERSION 0.8.3)
 
 ################################################################################
 # Project setup
@@ -39,7 +39,7 @@ enforce_build_type_is_set()
 list(APPEND COMMON_COMPILE_OPTIONS
         $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:-Wall>
         $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:-Wextra>
-        $<$<AND:$<NOT:$<CONFIG:Debug>>,$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>>:-Werror>
+#        $<$<AND:$<NOT:$<CONFIG:Debug>>,$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>>:-Werror>
         $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:-Wconversion>
         $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:-Wimplicit-fallthrough>
         $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:-Wsign-conversion>
@@ -47,11 +47,8 @@ list(APPEND COMMON_COMPILE_OPTIONS
         $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:-Wpedantic>
         $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:-Wno-gnu-zero-variadic-macro-arguments>
         $<$<CXX_COMPILER_ID:MSVC>:/W4>
-        $<$<AND:$<NOT:$<CONFIG:Debug>>,$<CXX_COMPILER_ID:MSVC>>:/WX>
+#        $<$<AND:$<NOT:$<CONFIG:Debug>>,$<CXX_COMPILER_ID:MSVC>>:/WX>
         $<$<CXX_COMPILER_ID:MSVC>:/EHsc>
-        # turn off C4744 warning: 'var' has different type in 'file1' and 'file2': 'type1' and 'type2'
-        # for further details see https://github.com/JuPedSim/simulator/issues/84
-        $<$<AND:$<NOT:$<CONFIG:Debug>>,$<CXX_COMPILER_ID:MSVC>>:/wd"4744">
 )
 
 MESSAGE( STATUS "System ........................................ ${CMAKE_SYSTEM_NAME} (${CMAKE_SYSTEM_VERSION}, ${CMAKE_SYSTEM_PROCESSOR})" )
@@ -206,6 +203,14 @@ set( HDR
         src/TrailPlotter.h
         src/myqtreeview.h
 )
+
+IF(APPLE)
+    SET(MAC_FIX_SRC src/fix/osx_thread_fix.mm) #.mm
+    SET(MAC_FIX_HDR src/fix/osx_thread_fix.h) #.h
+
+    SET(SRCS ${SRCS} ${MAC_FIX_SRC})
+    SET(HDR ${HDR} ${MAC_FIX_HDR})
+ENDIF(APPLE)
 
 set( UIS
         forms/settings.ui
