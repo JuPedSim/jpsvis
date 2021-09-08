@@ -57,6 +57,7 @@ cmake --build . --target jpsvis
 ### Linux
 ```
 mkdir build && cd build
+cmake ..
 cmake --build . --target jpsvis
 ```
 ### OSX
