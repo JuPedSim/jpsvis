@@ -897,7 +897,6 @@ bool MainWindow::addPedestrianGroup(int groupID,QString fileName)
          check_file = ttt_file;
          if( !(check_file.exists() && check_file.isFile()) )
         {
-          //Debug::Warning("MainWindow::addPedestrianGroup: ttt name: <%s> not found!", ttt_file.toStdString().c_str());
              readTrainTimeTable = false;
         }
          else
@@ -906,7 +905,6 @@ bool MainWindow::addPedestrianGroup(int groupID,QString fileName)
          check_file = tt_file;
          if( !(check_file.exists() && check_file.isFile()) )
         {
-          //Debug::Warning("MainWindow::addPedestrianGroup: tt name: <%s> not found!", tt_file.toStdString().c_str());
              readTrainTypes = false;
         }
          else
