@@ -48,7 +48,8 @@ The only requirement is a compiler supporting the new standard c++17.
 ### Windows
 ```
 mkdir build && cd build
-cmake -DCMAKE_TOOLCHAIN_FILE="path/to/vcpkg/scripts/buildsystems/vcpkg.cmake" --build . --target jpsvis
+cmake -DCMAKE_TOOLCHAIN_FILE="path/to/vcpkg/scripts/buildsystems/vcpkg.cmake" ..
+cmake --build . --target jpsvis
 ```
 
 (change `path/to` in the cmake call above accordingly).
