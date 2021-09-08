@@ -31,7 +31,7 @@ sudo apt-get install qtbase5-dev qtchooser qt5-qmake qtbase5-dev-tools libvtk9-d
 
 ### Install requirements for Windows
 
-To install the required libraries, we recommend using windows pakage manager [vcpkg](https://github.com/Microsoft/vcpkg)
+To install the required libraries, we recommend using windows package manager [vcpkg](https://github.com/Microsoft/vcpkg)
 
 ```
 git clone https://github.com/Microsoft/vcpkg
