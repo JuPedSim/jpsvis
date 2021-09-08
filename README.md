@@ -30,11 +30,14 @@ sudo apt-get install qtbase5-dev qtchooser qt5-qmake qtbase5-dev-tools libvtk9-d
 ```
 
 ### Install requirements for Windows
+
+To install the required libraries, we recommend using windows pakage manager [vcpkg](https://github.com/Microsoft/vcpkg)
+
 ```
 git clone https://github.com/Microsoft/vcpkg
 cd vcpkg
 .\bootstrap-vcpkg.bat
-.\vcpkg.exe install qt:x64-windows vtk-x64-windows
+.\vcpkg.exe install qt:x64-windows vtk:x64-windows
 ```
 
 ## Compiling from sources
@@ -45,24 +48,18 @@ The only requirement is a compiler supporting the new standard c++17.
 ### Windows
 ```
 mkdir build && cd build
-cmake -DCMAKE_TOOLCHAIN_FILE="path/to/vcpkg/scripts/buildsystems/vcpkg.cmake" ..
+cmake -DCMAKE_TOOLCHAIN_FILE="path/to/vcpkg/scripts/buildsystems/vcpkg.cmake" --build . --target jpsvis
 ```
 
-(change `path to` in the cmake call above).
-
-Open the produces solution with Visual Studio:
-`File -> Open -> Project/Solution`
+(change `path/to` in the cmake call above accordingly).
 
 ### Linux
 ```
 mkdir build && cd build
-cmake CMakeLists.txt ..
-make
+cmake --build . --target jpsvis
 ```
 ### OSX
 ```
 mkdir build && cd build
-cmake CMakeLists.txt ..
-make
+cmake --build . --target jpsvis
 ```
-Note that the OpenMP acceleration might be missing under OSX.
