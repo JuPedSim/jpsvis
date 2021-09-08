@@ -58,7 +58,11 @@ message( STATUS "Generating  ................................... ${PROJECT_NAME}
 # Dependencies
 ################################################################################
 # VTK
-find_package(VTK 9.0 REQUIRED)
+find_package(VTK 9.0 QUIET)
+if (NOT VTK_FOUND)
+    message(FATAL_ERROR "Can't build ${CMAKE_PROJECT_NAME} -  ${VTK_NOT_FOUND_MESSAGE}")
+endif()
+message (STATUS "VTK_VERSION: ${VTK_VERSION}")
 set(VTK_USE_GUISUPPORT  ON)
 set(VTK_USE_QT  ON)
 
@@ -66,7 +70,8 @@ set(VTK_USE_QT  ON)
 find_package(
         Qt5 5.14
         COMPONENTS Widgets Xml Core PrintSupport Gui Network
-        REQUIRED)
+        REQUIRED
+)
 
 #**********************************************************
 # Qt and Misc Stuff                                       *
