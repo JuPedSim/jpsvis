@@ -58,11 +58,16 @@ message( STATUS "Generating  ................................... ${PROJECT_NAME}
 # Dependencies
 ################################################################################
 # VTK
-find_package(VTK 9.0 QUIET)
+find_package(VTK 8.0 QUIET)
 if (NOT VTK_FOUND)
     message(FATAL_ERROR "Can't build ${CMAKE_PROJECT_NAME} -  ${VTK_NOT_FOUND_MESSAGE}")
 endif()
 message (STATUS "VTK_VERSION: ${VTK_VERSION}")
+
+if (VTK_VERSION VERSION_LESS "8.90.0")
+    include(${VTK_USE_FILE})
+endif()
+
 set(VTK_USE_GUISUPPORT  ON)
 set(VTK_USE_QT  ON)
 
@@ -106,10 +111,12 @@ target_link_libraries(jpsvis PUBLIC
 )
 
 # vtk_module_autoinit is needed
-vtk_module_autoinit(
-        TARGETS jpsvis
-        MODULES ${VTK_LIBRARIES}
-)
+if (VTK_VERSION VERSION_GREATER_EQUAL "8.90.0")
+    vtk_module_autoinit(
+            TARGETS jpsvis
+            MODULES ${VTK_LIBRARIES}
+    )
+endif()
 
 #**************************************************************
 # SOURCES                                                     *
