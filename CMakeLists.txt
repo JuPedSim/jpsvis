@@ -73,7 +73,7 @@ set(VTK_USE_QT  ON)
 
 # Qt
 find_package(
-        Qt5 5.14
+        Qt5 5.12
         COMPONENTS Widgets Xml Core PrintSupport Gui Network
         REQUIRED
 )
