@@ -144,7 +144,6 @@ MainWindow::MainWindow(QWidget *parent) :
     QCoreApplication::setApplicationName("jupedsim");
 
     //create the 2 threads and connect them
-    dataTransferThread = new ThreadDataTransfer(this);
     _visualisationThread = new ThreadVisualisation(this);
 
 
@@ -153,29 +152,9 @@ MainWindow::MainWindow(QWidget *parent) :
     travistoOptions->setWindowFlags(Qt::Window | Qt::WindowCloseButtonHint);
 
 
-    if(!QObject::connect(dataTransferThread,
-                         SIGNAL(signal_controlSequence(const char*)), this,
-                         SLOT(slotControlSequence(const char *)))) {
-        Log::Error("dataTransferThread Thread: control sequence could not be connected");
-    }
 
-    if(!QObject::connect(dataTransferThread,
-                         SIGNAL(signal_startVisualisationThread(QString,int,float )), this,
-                         SLOT(slotStartVisualisationThread(QString,int,float )))) {
-        Log::Error(" signal_startVisualisationThread not connected");
-    }
 
-    if(!QObject::connect(dataTransferThread,
-                         SIGNAL(signal_stopVisualisationThread(bool )), this,
-                         SLOT(slotShutdownVisualisationThread(bool )))) {
-        Log::Error(" signal_stopVisualisationThread not connected ");
-    }
 
-    if(!QObject::connect(dataTransferThread,
-                         SIGNAL(signal_errorMessage(QString)), this,
-                         SLOT(slotErrorOutput(QString)))) {
-        Log::Error("signal_errorMessage  not connected ");
-    }
 
     QObject::connect(_visualisationThread,
                      SIGNAL(signal_controlSequences(const char*)), this,
@@ -184,9 +163,6 @@ MainWindow::MainWindow(QWidget *parent) :
     QObject::connect(&extern_trajectories_firstSet,
                      SIGNAL(signal_controlSequences(const char*)), this,
                      SLOT(slotControlSequence(const char *)));
-
-    QObject::connect(dataTransferThread, SIGNAL(signal_CurrentAction(QString)),
-                     this, SLOT(slotCurrentAction(QString)));
 
     QObject::connect(this, SIGNAL(signal_controlSequence(QString)),
                      travistoOptions, SLOT(slotControlSequence(QString)));
@@ -328,12 +304,8 @@ MainWindow::~MainWindow()
         waitForVisioThread();
     }
 
-    if (dataTransferThread->isRunning()) {
-        //it is your own fault if you were still recording something
-        waitForDataThread();
-    }
 
-    delete dataTransferThread;
+
     delete _visualisationThread;
     delete travistoOptions;
     delete labelCurrentAction;
@@ -425,14 +397,7 @@ void MainWindow::slotStartPlaying()
 
         } else { /*if (extern_online_mode)*/  //live visualisation
 
-#ifdef __APPLE__
-            dispatch_async(main_q, ^(void){
-                               dataTransferThread->run();
-                           });
-#else
-            dataTransferThread->start();
 
-#endif
             //dataTransferThread->start();
             //visualisationThread->start();
         }
@@ -1100,7 +1065,7 @@ void MainWindow::slotReset()
     //shutdown the visual thread
     extern_shutdown_visual_thread = true;
     waitForVisioThread();
-    waitForDataThread();
+
 
     //reset all buttons
     //anyDataLoaded = false;
@@ -1173,7 +1138,7 @@ void MainWindow::cleanUp()
         slotRecordPNGsequence();
 
     waitForVisioThread();
-    waitForDataThread();
+
 
 }
 
@@ -1446,16 +1411,7 @@ void MainWindow::waitForVisioThread()
 }
 
 /// wait for datatransfer thread to be ready
-void MainWindow::waitForDataThread()
-{
 
-    while(dataTransferThread->isRunning()) {
-        dataTransferThread->shutdown();
-        Log::Info("Waiting for network engine to terminate ...");
-        dataTransferThread->wait(500);
-    }
-    Log::Info("Network Engine shutdown successfully.");
-}
 
 /// set visualisation mode to 2D
 void MainWindow::slotToogle2D()
@@ -1464,7 +1420,6 @@ void MainWindow::slotToogle2D()
         extern_is_3D=false;
         ui.action3_D->setChecked(false);
         SystemSettings::set2D(true);
-
     } else {
         extern_is_3D=true;
         ui.action3_D->setChecked(true);

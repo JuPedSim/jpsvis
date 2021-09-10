@@ -46,7 +46,6 @@
 
 class vtkWindowToImageFilter;
 class SyncData;
-class ThreadDataTransfer;
 class ThreadVisualisation;
 class QString;
 class QDomNode;
@@ -315,9 +314,6 @@ private:
     /// wait for visualisation thread to terminate
     void waitForVisioThread();
 
-    /// wait for data transfer thread to terminate
-    void waitForDataThread();
-
 
 
 private:
@@ -329,7 +325,6 @@ private:
     int numberOfDatasetLoaded;
 
     Settings* travistoOptions;
-    ThreadDataTransfer* dataTransferThread;
     ThreadVisualisation* _visualisationThread;
     QLabel *labelCurrentAction;
     QLabel *labelFrameNumber;
