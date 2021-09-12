@@ -88,9 +88,6 @@ if(APPLE AND CMAKE_INSTALL_PREFIX MATCHES "/usr/local")
 endif()
 
 set(CMAKE_INSTALL_PREFIX /tmp)
-# these files compile need Cocoa (evtl. Mac specific)
-SET(MAC_FIX_SRC src/fix/osx_thread_fix.mm) #.mm
-SET(MAC_FIX_HDR src/fix/osx_thread_fix.h) #.h
 set( SRCS
   src/geometry/Building.cpp
   src/geometry/Crossing.cpp
@@ -184,10 +181,6 @@ set( HDR
   src/TrailPlotter.h
   src/myqtreeview.h
   )
-IF(APPLE)
-  SET(SRCS ${SRCS} ${MAC_FIX_SRC})
-  SET(HDR ${HDR} ${MAC_FIX_HDR})
-ENDIF(APPLE)
 
 
 

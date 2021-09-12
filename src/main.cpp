@@ -52,9 +52,6 @@
 #undef VTK_USE_FFMPEG
 
 #include "MainWindow.h"
-#ifdef __APPLE__
-#include "fix/osx_thread_fix.h"
-#endif
 #include <QApplication>
 #include <QDir>
 #include <locale.h>
@@ -114,9 +111,6 @@ int main(int argc, char *argv[])
          Log::Info("Branch         : %s\n----\n", GIT_BRANCH);
 
 
-#ifdef __APPLE__
-     InitMultiThreading();
-#endif
 
     QApplication a(argc, argv);
     // To ensure that decimal numbers use a "point" instead of "colon" on some systems

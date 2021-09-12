@@ -112,7 +112,6 @@ ver_string1(__MINGW32__, __MINGW32_MAJOR_VERSION, __MINGW32_MINOR_VERSION);
 #ifdef __APPLE__
 #include <thread>
 #include <dispatch/dispatch.h>
-#include "fix/osx_thread_fix.h"
 
 std::thread::id main_thread_id = std::this_thread::get_id();
 dispatch_queue_t main_q = dispatch_get_main_queue();

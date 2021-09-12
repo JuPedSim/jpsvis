@@ -392,25 +392,11 @@ void ThreadVisualisation::run()
     _renderWinInteractor->Start();
 
 
-#ifdef __APPLE__
-    //InitMultiThreading();
-
-    //dispatch_async(main_q, ^(void){
-    //          is_main_thread(); //Unfortunately not
-    //          std::cout << "now spinning the visualizer" << std::endl;
-    //                  renderWinInteractor->Start();
-
-    //});
-    //[[NSThread new] start];
-    //#include <objc/objc.h>
-    //NSThread* myThread = [[NSThread alloc] initWithTarget:self selector:@selector(workerThreadFunction:) object:nil];
-    //[myThread start];
-#endif
     //emit signalStatusMessage("Idle");
     emit signal_controlSequences("CONTROL_RESET");
 
 
-    // still debugging. TODO, check the source of the leak while using cocoa
+
 #ifndef __APPLE__
     //clear some stuffs
     //delete extern_trail_plotter;
