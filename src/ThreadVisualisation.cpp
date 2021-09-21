@@ -398,9 +398,6 @@ void ThreadVisualisation::run()
 
 
     // still debugging. TODO, check the source of the leak while using cocoa
-#ifndef __APPLE__
-    //clear some stuffs
-    //delete extern_trail_plotter;
     finalize();
 
     _renderer->Delete();
@@ -409,7 +406,6 @@ void ThreadVisualisation::run()
     _topViewCamera->Delete();
     _renderer=NULL;
     delete renderingTimer;
-#endif
 
 }
 
@@ -895,4 +891,4 @@ void ThreadVisualisation::Create2dAgent()
 {
 
 }
->>>>>>> 30c3d18a7234d0ce843947bfd454679928b90aeb
+
