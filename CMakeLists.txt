@@ -60,7 +60,7 @@ message( STATUS "Generating  ................................... ${PROJECT_NAME}
 # VTK
 find_package(VTK 8.0 QUIET)
 if (NOT VTK_FOUND)
-    message(FATAL_ERROR "Can't build ${CMAKE_PROJECT_NAME} -  ${VTK_NOT_FOUND_MESSAGE}")
+    message(FATAL_ERROR "Can't build ${CMAKE_PROJECT_NAME} -  VTK not found!")
 endif()
 message (STATUS "VTK_VERSION: ${VTK_VERSION}")
 
