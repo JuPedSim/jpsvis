@@ -16,7 +16,6 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-set(EXECUTABLE_OUTPUT_PATH "${CMAKE_BINARY_DIR}/bin")
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_COLOR_MAKEFILE ON)
@@ -37,45 +36,37 @@ enforce_build_type_is_set()
 #          CMake will enclose multiple flags in '' which the compiler then
 #          treats as a single flag and does not understand.
 list(APPEND COMMON_COMPILE_OPTIONS
-        $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:-Wall>
-        $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:-Wextra>
-#        $<$<AND:$<NOT:$<CONFIG:Debug>>,$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>>:-Werror>
-        $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:-Wconversion>
-        $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:-Wimplicit-fallthrough>
-        $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:-Wsign-conversion>
-        $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:-fdiagnostics-color=always>
-        $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:-Wpedantic>
-        $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:-Wno-gnu-zero-variadic-macro-arguments>
-        $<$<CXX_COMPILER_ID:MSVC>:/W4>
-#        $<$<AND:$<NOT:$<CONFIG:Debug>>,$<CXX_COMPILER_ID:MSVC>>:/WX>
-        $<$<CXX_COMPILER_ID:MSVC>:/EHsc>
+    $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:-Wall>
+    $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:-Wextra>
+    $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:-Wconversion>
+    $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:-Wimplicit-fallthrough>
+    $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:-Wsign-conversion>
+    $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:-fdiagnostics-color=always>
+    $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:-Wpedantic>
+    $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:-Wno-gnu-zero-variadic-macro-arguments>
+    $<$<CXX_COMPILER_ID:MSVC>:/W4>
+    $<$<CXX_COMPILER_ID:MSVC>:/EHsc>
 )
 
-MESSAGE( STATUS "System ........................................ ${CMAKE_SYSTEM_NAME} (${CMAKE_SYSTEM_VERSION}, ${CMAKE_SYSTEM_PROCESSOR})" )
+message( STATUS "System ........................................ ${CMAKE_SYSTEM_NAME} (${CMAKE_SYSTEM_VERSION}, ${CMAKE_SYSTEM_PROCESSOR})" )
 message( STATUS "Generating  ................................... ${PROJECT_NAME} (${PROJECT_VERSION})")
 
 ################################################################################
 # Dependencies
 ################################################################################
 # VTK
-find_package(VTK 8.0 QUIET)
-if (NOT VTK_FOUND)
-    message(FATAL_ERROR "Can't build ${CMAKE_PROJECT_NAME} -  VTK not found!")
-endif()
-message (STATUS "VTK_VERSION: ${VTK_VERSION}")
+find_package(VTK 8.0 REQUIRED CONFIG)
+message(STATUS "VTK_VERSION: ${VTK_VERSION}")
 
 if (VTK_VERSION VERSION_LESS "8.90.0")
     include(${VTK_USE_FILE})
 endif()
 
-set(VTK_USE_GUISUPPORT  ON)
-set(VTK_USE_QT  ON)
-
 # Qt
 find_package(
-        Qt5 5.12
-        COMPONENTS Widgets Xml Core PrintSupport Gui Network
-        REQUIRED
+    Qt5 5.12
+    COMPONENTS Widgets Xml Core Gui Network
+    REQUIRED
 )
 
 #**********************************************************
@@ -90,7 +81,7 @@ set(AUTOGEN_BUILD_DIR "${CMAKE_CURRENT_BINARY_DIR}/${NAME}_autogen")
 #**********************************************************
 # Create library and executable                           *
 #**********************************************************
-SET(app_icon_macos ${CMAKE_SOURCE_DIR}/forms/icons/JPSvis.icns)
+set(app_icon_macos ${CMAKE_SOURCE_DIR}/forms/icons/JPSvis.icns)
 set_source_files_properties(${app_icon_macos} PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
 
 add_executable(jpsvis MACOSX_BUNDLE WIN32 src/main.cpp ${app_icon_macos})
@@ -122,121 +113,121 @@ endif()
 # SOURCES                                                     *
 #**************************************************************
 target_include_directories(jpsvis PUBLIC "${CMAKE_SOURCE_DIR}/src" "${CMAKE_SOURCE_DIR}/forms" ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR})
-set( SRCS
-        src/geometry/Building.cpp
-        src/geometry/Crossing.cpp
-        src/geometry/Goal.cpp
-        src/geometry/Hline.cpp
-        src/geometry/Line.cpp
-        src/geometry/NavLine.cpp
-        src/geometry/Obstacle.cpp
-        src/geometry/Point.cpp
-        src/geometry/Room.cpp
-        src/geometry/SubRoom.cpp
-        src/geometry/Transition.cpp
-        src/geometry/Wall.cpp
-        src/geometry/JPoint.cpp
-        src/tinyxml/tinystr.cpp
-        src/tinyxml/tinyxml.cpp
-        src/tinyxml/tinyxmlerror.cpp
-        src/tinyxml/tinyxmlparser.cpp
-        src/IO/OutputHandler.cpp
-        src/IO/TraVisToClient.cpp
-        forms/Settings.cpp
-        src/SaxParser.cpp
-        src/Log.cpp
-        src/main.cpp
-        src/Frame.cpp
-        src/InteractorStyle.cpp
-        src/Pedestrian.cpp
-        src/SimpleVisualisationWindow.cpp
-        src/SyncData.cpp
-        src/SystemSettings.cpp
-        src/ThreadDataTransfert.cpp
-        src/ThreadVisualisation.cpp
-        src/TimerCallback.cpp
-        src/FrameElement.cpp
-        src/geometry/LinePlotter2D.cpp
-        src/geometry/PointPlotter2D.cpp
-        src/geometry/FacilityGeometry.cpp
-        src/geometry/LinePlotter.cpp
-        src/geometry/PointPlotter.cpp
-        src/geometry/GeometryFactory.cpp
-        src/network/TraVisToServer.cpp
-        src/MainWindow.cpp
-        src/TrailPlotter.cpp
-        src/myqtreeview.cpp
-        forms/jpsvis.rc
+set(SRCS
+    src/geometry/Building.cpp
+    src/geometry/Crossing.cpp
+    src/geometry/Goal.cpp
+    src/geometry/Hline.cpp
+    src/geometry/Line.cpp
+    src/geometry/NavLine.cpp
+    src/geometry/Obstacle.cpp
+    src/geometry/Point.cpp
+    src/geometry/Room.cpp
+    src/geometry/SubRoom.cpp
+    src/geometry/Transition.cpp
+    src/geometry/Wall.cpp
+    src/geometry/JPoint.cpp
+    src/tinyxml/tinystr.cpp
+    src/tinyxml/tinyxml.cpp
+    src/tinyxml/tinyxmlerror.cpp
+    src/tinyxml/tinyxmlparser.cpp
+    src/IO/OutputHandler.cpp
+    src/IO/TraVisToClient.cpp
+    forms/Settings.cpp
+    src/SaxParser.cpp
+    src/Log.cpp
+    src/main.cpp
+    src/Frame.cpp
+    src/InteractorStyle.cpp
+    src/Pedestrian.cpp
+    src/SimpleVisualisationWindow.cpp
+    src/SyncData.cpp
+    src/SystemSettings.cpp
+    src/ThreadDataTransfert.cpp
+    src/ThreadVisualisation.cpp
+    src/TimerCallback.cpp
+    src/FrameElement.cpp
+    src/geometry/LinePlotter2D.cpp
+    src/geometry/PointPlotter2D.cpp
+    src/geometry/FacilityGeometry.cpp
+    src/geometry/LinePlotter.cpp
+    src/geometry/PointPlotter.cpp
+    src/geometry/GeometryFactory.cpp
+    src/network/TraVisToServer.cpp
+    src/MainWindow.cpp
+    src/TrailPlotter.cpp
+    src/myqtreeview.cpp
+    forms/jpsvis.rc
 )
 
-set( HDR
-        src/geometry/Building.h
-        src/geometry/Crossing.h
-        src/geometry/Goal.h
-        src/geometry/Hline.h
-        src/geometry/Line.h
-        src/geometry/NavLine.h
-        src/geometry/Obstacle.h
-        src/geometry/Point.h
-        src/geometry/Room.h
-        src/geometry/SubRoom.h
-        src/geometry/Transition.h
-        src/geometry/Wall.h
-        src/geometry/JPoint.h
-        src/geometry/GeometryFactory.h
-        src/tinyxml/tinystr.h
-        src/tinyxml/tinyxml.h
-        src/general/Macros.h
-        src/IO/OutputHandler.h
-        src/IO/TraVisToClient.h
-        forms/Settings.h
-        src/SaxParser.h
-        src/train.h
-        src/Log.h
-        src/Frame.h
-        src/InteractorStyle.h
-        src/Message.h
-        src/Pedestrian.h
-        src/SimpleVisualisationWindow.h
-        src/SyncData.h
-        src/SystemSettings.h
-        src/ThreadDataTransfert.h
-        src/ThreadVisualisation.h
-        src/TimerCallback.h
-        src/FrameElement.h
-        src/extern_var.h
-        src/geometry/FacilityGeometry.h
-        src/geometry/LinePlotter.h
-        src/geometry/PointPlotter.h
-        src/geometry/LinePlotter2D.h
-        src/geometry/PointPlotter2D.h
-        src/network/TraVisToServer.h
-        src/MainWindow.h
-        src/TrailPlotter.h
-        src/myqtreeview.h
+set(HDR
+    src/geometry/Building.h
+    src/geometry/Crossing.h
+    src/geometry/Goal.h
+    src/geometry/Hline.h
+    src/geometry/Line.h
+    src/geometry/NavLine.h
+    src/geometry/Obstacle.h
+    src/geometry/Point.h
+    src/geometry/Room.h
+    src/geometry/SubRoom.h
+    src/geometry/Transition.h
+    src/geometry/Wall.h
+    src/geometry/JPoint.h
+    src/geometry/GeometryFactory.h
+    src/tinyxml/tinystr.h
+    src/tinyxml/tinyxml.h
+    src/general/Macros.h
+    src/IO/OutputHandler.h
+    src/IO/TraVisToClient.h
+    forms/Settings.h
+    src/SaxParser.h
+    src/train.h
+    src/Log.h
+    src/Frame.h
+    src/InteractorStyle.h
+    src/Message.h
+    src/Pedestrian.h
+    src/SimpleVisualisationWindow.h
+    src/SyncData.h
+    src/SystemSettings.h
+    src/ThreadDataTransfert.h
+    src/ThreadVisualisation.h
+    src/TimerCallback.h
+    src/FrameElement.h
+    src/extern_var.h
+    src/geometry/FacilityGeometry.h
+    src/geometry/LinePlotter.h
+    src/geometry/PointPlotter.h
+    src/geometry/LinePlotter2D.h
+    src/geometry/PointPlotter2D.h
+    src/network/TraVisToServer.h
+    src/MainWindow.h
+    src/TrailPlotter.h
+    src/myqtreeview.h
 )
 
 IF(APPLE)
-    SET(MAC_FIX_SRC src/fix/osx_thread_fix.mm) #.mm
-    SET(MAC_FIX_HDR src/fix/osx_thread_fix.h) #.h
+    set(MAC_FIX_SRC src/fix/osx_thread_fix.mm) #.mm
+    set(MAC_FIX_HDR src/fix/osx_thread_fix.h) #.h
 
-    SET(SRCS ${SRCS} ${MAC_FIX_SRC})
-    SET(HDR ${HDR} ${MAC_FIX_HDR})
+    set(SRCS ${SRCS} ${MAC_FIX_SRC})
+    set(HDR ${HDR} ${MAC_FIX_HDR})
 ENDIF(APPLE)
 
-set( UIS
-        forms/settings.ui
-        forms/mainwindow.ui
+set(UIS
+    forms/settings.ui
+    forms/mainwindow.ui
 )
 
-set( RCS
-        forms/icons.qrc
+set(RCS
+    forms/icons.qrc
 )
 
 target_sources(jpsvis PRIVATE ${SRCS} ${HDR} ${UIS} ${HDR} ${RCS})
 
 target_compile_definitions(jpsvis PUBLIC
-        JPSVIS_VERSION="${PROJECT_VERSION}"
+    JPSVIS_VERSION="${PROJECT_VERSION}"
 )
 
 ################################################################################
