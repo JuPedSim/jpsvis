@@ -259,10 +259,10 @@ private:
     /// reset all graphic element to their initial(default) state
     void resetGraphicalElements();
 
-    /// add a second/third dataset to the visualization data
-    ///  groupID may be 2 or 3
     /// @return false if something went wrong.
-    bool addPedestrianGroup(int groupID, QString fileName = "");
+    bool tryParseFile(const std::filesystem::path & path = {});
+    bool tryParseGeometry(const std::filesystem::path & path);
+    bool tryParseTrajectory(const std::filesystem::path & path);
 
     /// return true if at least one dataset was loaded
     bool anyDatasetLoaded();

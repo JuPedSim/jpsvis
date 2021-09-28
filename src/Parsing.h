@@ -41,8 +41,23 @@
 
 namespace Parsing
 {
+/// This enum describes all file types that can be selected via the OpenFile dialog.
+enum class InputFileType {
+    /// This is geometry data in XML format, this is the same format jpscore consumes
+    GEOMETRY_XML,
+    /// This is trajectory data in TXT format created by jpscore
+    TRAJECTORIES_TXT,
+    /// This is dummy type indicating that the file format is not recognised.
+    UNRECOGNIZED
+};
+
+/// This function will return the detected file type, this may be 'UNRECOGNISED' if detection fails.
+/// @param path to the file
+/// @return InputFileType that was detected
+InputFileType detectFileType(const std::filesystem::path & path);
+
 /// provided for convenience and will be removed in the next version
-bool parseGeometryJPS(QString content, GeometryFactory & geo);
+bool readJpsGeometryXml(const std::filesystem::path & path, GeometryFactory & geo);
 
 /// provided for convenience and will be removed in the next version
 void parseGeometryXMLV04(QString content, GeometryFactory & geo);

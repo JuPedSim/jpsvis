@@ -55,6 +55,7 @@
 #include <cmath>
 #include <iostream>
 #include <limits>
+#include <memory>
 #include <optional>
 #include <vtkActor.h>
 #include <vtkAssembly.h>
@@ -78,6 +79,24 @@
 
 namespace Parsing
 {
+InputFileType detectFileType(const std::filesystem::path & path)
+{
+    // Ok this is really stupid, but for now it is good enough
+    // The detection is just looking at the file extension
+    // TODO(kkratz): Do some ACTUAL detection
+    if(!path.has_extension()) {
+        return InputFileType::UNRECOGNIZED;
+    }
+    const auto file_extension = path.extension().string();
+    if(file_extension == ".xml" || file_extension == ".XML") {
+        return InputFileType::GEOMETRY_XML;
+    }
+    if(file_extension == ".txt" || file_extension == ".TXT") {
+        return InputFileType::TRAJECTORIES_TXT;
+    }
+    return InputFileType::UNRECOGNIZED;
+}
+
 double GetElevation(QString geometryFile, int roomId, int subroomId)
 {
     double C_z;
@@ -225,37 +244,25 @@ std::tuple<Point, Point> GetTrackStartEnd(QString geometryFile, int trackId)
 }
 
 
-bool parseGeometryJPS(QString fileName, GeometryFactory & geoFac)
+bool readJpsGeometryXml(const std::filesystem::path & path, GeometryFactory & geoFac)
 {
-    Log::Info("Enter parseGeometryJPS with filename <%s>", fileName.toStdString().c_str());
+    Log::Info("Reading JPS geometry from \"%s\"", path.string().c_str());
+    const auto jps_project_root_path = path.parent_path();
+    Log::Info(
+        "Rootdir for parsing the geometry file \"%s\"", jps_project_root_path.string().c_str());
 
-    double captionsColor = 0; // red
-    QDir fileDir(fileName);
-    QString wd;
-    QDir dir(wd);
-    SystemSettings::getWorkingDirectory(wd);
-
-    if(!fileName.endsWith(".xml", Qt::CaseInsensitive))
+    auto building = std::make_unique<Building>();
+    building->SetProjectRootDir(jps_project_root_path.string());
+    if(!building->LoadGeometry(path.string())) {
         return false;
-    if(!fileDir.isAbsolute()) {
-        QString s = dir.relativeFilePath(fileName);
-        fileName  = wd + QDir::separator() + s;
+    }
+    if(!building->InitGeometry()) {
+        return false;
     }
 
-    Log::Info("filename: <%s)", fileName.toStdString().c_str());
-    Log::Info("wd: <%s>", wd.toStdString().c_str());
-    Building * building      = new Building();
-    std::string geometrypath = fileName.toStdString();
-    building->SetProjectRootDir(wd.toStdString());
-
-    // read the geometry
-    if(!building->LoadGeometry(geometrypath))
-        return false;
-    if(!building->InitGeometry())
-        return false; // create the polygons
-
-    int room_id    = -1;
-    int subroom_id = -1;
+    double captionsColor = 0; // red
+    int room_id          = -1;
+    int subroom_id       = -1;
     for(auto && itr_room : building->GetAllRooms()) {
         room_id++;
         for(auto && itr_subroom : itr_room.second->GetAllSubRooms()) {
@@ -445,8 +452,6 @@ bool parseGeometryJPS(QString fileName, GeometryFactory & geoFac)
             geoFac.AddElement(room_id, subroom_id, geometry);
         }
     }
-    // free memory
-    delete building;
     return true;
 }
 

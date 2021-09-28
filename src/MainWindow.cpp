@@ -36,6 +36,7 @@
 #include "Frame.h"
 #include "Log.h"
 #include "Parsing.h"
+#include "SyncData.h"
 #include "SystemSettings.h"
 #include "TrajectoryPoint.h"
 #include "Visualisation.h"
@@ -168,36 +169,6 @@ MainWindow::MainWindow(QWidget * parent) : QMainWindow(parent)
 
     // restore the settings
     loadAllSettings();
-
-    QStringList arguments = QApplication::arguments();
-    int group             = 1; // there are max 3 groups of pedestrians
-    bool mayPlay          = false;
-
-    arguments.append("-2D");
-    // parse arguments list
-    if(arguments.size() > 1)
-        for(int argCount = 1; argCount < arguments.size(); argCount++) {
-            QString argument = arguments[argCount];
-
-            if(argument.compare("help") == 0) {
-                Log::Info("Usage: jpsvis [file1] [-2D] [-caption]");
-                exit(0);
-            } else if(argument.compare("-2D") == 0) {
-                ui.action2_D->setChecked(true);
-                slotToogle2D();
-            } else if(argument.compare("-caption") == 0) {
-                ui.actionShow_Captions->setChecked(true);
-                slotShowPedestrianCaption();
-            } else if(argument.startsWith("-")) {
-                Log::Error("unknown options: %s", argument.toStdString().c_str());
-                Log::Error("Usage: jpsvis [file1] [-2D] [-caption]");
-            } else if(addPedestrianGroup(group, argument)) {
-                Log::Info("group: %d, arg: %s", group, argument.toStdString().c_str());
-                group++;
-                mayPlay = true;
-            }
-        }
-    Log::Info("MayPlay: %s", mayPlay ? "True" : "False");
 }
 
 MainWindow::~MainWindow()
@@ -240,8 +211,7 @@ void MainWindow::slotOpenFile()
             if(path) {
                 stopRendering();
                 clearDataSet(1);
-                const bool could_load_data =
-                    addPedestrianGroup(1, QString::fromStdString(path.value().string()));
+                const bool could_load_data = tryParseFile(path.value());
                 if(could_load_data) {
                     _state = ApplicationState::Paused;
                     enablePlayerControls();
@@ -422,216 +392,127 @@ void MainWindow::slotClearAllDataset()
     numberOfDatasetLoaded = 0;
 }
 
-bool MainWindow::addPedestrianGroup(int groupID, QString fileName)
+bool MainWindow::tryParseFile(const std::filesystem::path & path)
 {
-    Log::Info("Trying to parse %s", fileName.toStdString().c_str());
-    // get and set the working dir
-    QFileInfo fileInfo(fileName);
-    QString wd = fileInfo.absoluteDir().absolutePath();
-    Log::Info("MainWindow::addPedestrianGroup: wd:  <%s>", wd.toStdString().c_str());
-    SystemSettings::setWorkingDirectory(wd);
-    SystemSettings::setFilenamePrefix(QFileInfo(fileName).baseName() + "_");
+    Log::Info("Trying to parse %s", path.string().c_str());
+    const auto file_type = Parsing::detectFileType(path);
+    switch(file_type) {
+        case Parsing::InputFileType::GEOMETRY_XML:
+            return tryParseGeometry(path);
+        case Parsing::InputFileType::TRAJECTORIES_TXT:
+            return tryParseTrajectory(path);
+        case Parsing::InputFileType::UNRECOGNIZED:
+            return false;
+    }
+}
 
-    // the geometry actor
-    GeometryFactory & geometry = _visualisationThread->getGeometry();
-    QString geometry_file;
-    // try to get a geometry filename
-    if(fileName.endsWith(".xml", Qt::CaseInsensitive)) {
-        Log::Info("1. Extract geometry file from <%s>", fileName.toStdString().c_str());
-        geometry_file = Parsing::extractGeometryFilename(fileName);
-    } else {
-        Log::Info("Extract geometry file from <%s>", fileName.toStdString().c_str());
-        geometry_file = Parsing::extractGeometryFilenameTXT(fileName);
+bool MainWindow::tryParseGeometry(const std::filesystem::path & path)
+{
+    return Parsing::readJpsGeometryXml(path, _visualisationThread->getGeometry());
+}
+
+bool MainWindow::tryParseTrajectory(const std::filesystem::path & path)
+{
+    const auto parent_path = path.parent_path();
+    auto fileName          = QString::fromStdString(path.string());
+
+    const auto source_file =
+        parent_path / std::filesystem::path(Parsing::extractSourceFileTXT(fileName).toStdString());
+    const bool readSource = std::filesystem::is_regular_file(source_file);
+    if(readSource) {
+        Log::Info("Found source file: \"%s\"", source_file.string().c_str());
     }
 
-    Log::Info(
-        "MainWindow::addPedestrianGroup: geometry name: <%s>", geometry_file.toStdString().c_str());
-    if(geometry_file.isEmpty()) {
-        auto fileDir = fileInfo.path();
-        if(fileName.endsWith(".txt", Qt::CaseInsensitive)) {
-            int res = QMessageBox::warning(
-                this,
-                "Did not find geometry name in TXT file",
-                "Warning: Did not find geometry name in TXT file\nOpen "
-                "geometry file?",
-                QMessageBox::Yes | QMessageBox::No,
-                QMessageBox::Yes);
-            if(res == QMessageBox::No) {
-                exit(EXIT_FAILURE);
-                // return false;
-            }
-            geometry_file = QFileDialog::getOpenFileName(
-                this, "Select a geometry file", fileDir, "Geometry (*.xml)");
-            Log::Info("Got geometry file: <%s>", geometry_file.toStdString().c_str());
-            QFileInfo check_file(geometry_file);
-            if(!(check_file.exists() && check_file.isFile())) {
-                Log::Error("Geomery file does not exist.");
-                // exit(EXIT_FAILURE);
-                return (false);
-            }
-        }
-    }
-    Log::Info("---> geometry: %s \n", geometry_file.toStdString().c_str());
-
-    // if xml is detected, just load and show the geometry then exit
-    if(geometry_file.endsWith(".xml", Qt::CaseInsensitive)) {
-        // try to parse the correct way
-        // fall back to this if it fails
-        SystemSettings::CreateLogfile();
-        Log::Info("Calling parseGeometryJPS with <%s>", geometry_file.toStdString().c_str());
-        if(!Parsing::parseGeometryJPS(geometry_file, geometry)) {
-            int res = QMessageBox::warning(
-                this,
-                "Errors in Geometry. Continue Parsing?",
-                "JuPedSim has detected an error in the supplied geometry.\n"
-                "<" +
-                    geometry_file +
-                    ">"
-                    "The simulation will likely fail using this geometry.\n"
-                    "More information are provided in the log file:\n" +
-                    SystemSettings::getLogfile() +
-                    "\n\nShould I try to parse and display what I can?",
-                QMessageBox::Yes | QMessageBox::No,
-                QMessageBox::No);
-            if(res == QMessageBox::No) {
-                return false;
-            }
-            Parsing::parseGeometryXMLV04(
-                wd + "/" + geometry_file,
-                geometry); //@todo:
-                           // use
-                           // qt sep
-        } else {
-            // everything was fine. Delete the log file
-            SystemSettings::DeleteLogfile();
-        }
+    const auto ttt_file =
+        parent_path /
+        std::filesystem::path(Parsing::extractTrainTimeTableFileTXT(fileName).toStdString());
+    const bool readTrainTimeTable = std::filesystem::is_regular_file(ttt_file);
+    if(readTrainTimeTable) {
+        Log::Info("Found train time table file: \"%s\"", ttt_file.string().c_str());
     }
 
-    QFile file(fileName);
-    if(!file.open(QIODevice::ReadOnly)) {
-        Log::Error("parseGeometryJPS:  could not open the File: ", fileName.toStdString().c_str());
+    const auto tt_file =
+        parent_path /
+        std::filesystem::path(Parsing::extractTrainTypeFileTXT(fileName).toStdString());
+    const bool readTrainTypes = std::filesystem::is_regular_file(tt_file);
+    if(readTrainTypes) {
+        Log::Info("Found train types file: \"%s\"", tt_file.string().c_str());
+    }
+
+    const auto goal_file =
+        parent_path / std::filesystem::path(Parsing::extractGoalFileTXT(fileName).toStdString());
+    const bool readGoal = std::filesystem::is_regular_file(goal_file);
+    if(readGoal) {
+        Log::Info("Found goal file: \"%s\"", goal_file.string().c_str());
+    }
+
+    std::map<std::string, std::shared_ptr<TrainType>> trainTypes;
+    if(readTrainTypes) {
+        Parsing::LoadTrainType(tt_file.string(), trainTypes);
+        extern_trainTypes = trainTypes;
+    }
+
+    std::map<int, std::shared_ptr<TrainTimeTable>> trainTimeTable;
+    if(readTrainTimeTable) {
+        bool ret               = Parsing::LoadTrainTimetable(ttt_file.string(), trainTimeTable);
+        extern_trainTimeTables = trainTimeTable;
+    }
+
+    const auto geometry_file =
+        parent_path /
+        std::filesystem::path(Parsing::extractGeometryFilenameTXT(fileName).toStdString());
+
+    if(!tryParseGeometry(geometry_file)) {
         return false;
     }
 
-    SyncData * dataset = NULL;
+    std::tuple<Point, Point> trackStartEnd;
+    double elevation;
+    for(auto tab : trainTimeTable) {
+        int trackId = tab.second->pid;
+        trackStartEnd =
+            Parsing::GetTrackStartEnd(QString::fromStdString(geometry_file.string()), trackId);
+        elevation = 0;
 
+        Point trackStart = std::get<0>(trackStartEnd);
+        Point trackEnd   = std::get<1>(trackStartEnd);
+
+        tab.second->pstart    = trackStart;
+        tab.second->pend      = trackEnd;
+        tab.second->elevation = elevation;
+
+        Log::Info("=======\n");
+        Log::Info("tab: %d\n", tab.first);
+        Log::Info("Track start: [%.2f, %.2f]\n", trackStart._x, trackStart._y);
+        Log::Info("Track end: [%.2f, %.2f]\n", trackEnd._x, trackEnd._y);
+        Log::Info("Room: %d\n", tab.second->rid);
+        Log::Info("Subroom %d\n", tab.second->sid);
+        Log::Info("Elevation %d\n", tab.second->elevation);
+        Log::Info("=======\n");
+    }
+    for(auto tab : trainTypes)
+        Log::Info("type: %s\n", tab.first.c_str());
+
+    double fps;
+    // TODO(kkratz): Figure out why this is required
     extern_trajectories_firstSet.clearFrames();
-
-    vtkSmartPointer<vtkSphereSource> org = vtkSphereSource::New();
-    org->SetRadius(10);
-
-    switch(groupID) {
-        case 1:
-            Log::Info("handling first set");
-            dataset                      = &extern_trajectories_firstSet;
-            extern_first_dataset_loaded  = true;
-            extern_first_dataset_visible = true;
-            ui.actionFirst_Group->setEnabled(true);
-            ui.actionFirst_Group->setChecked(true);
-            slotToggleFirstPedestrianGroup();
-            break;
-
-        default:
-            Log::Error("Only one dataset can be loaded at a time");
-            break;
+    extern_first_dataset_visible = true;
+    ui.actionFirst_Group->setEnabled(true);
+    ui.actionFirst_Group->setChecked(true);
+    slotToggleFirstPedestrianGroup();
+    if(false == Parsing::ParseTxtFormat(fileName, &extern_trajectories_firstSet, &fps)) {
+        return false;
     }
 
-    // no other geometry format was detected
-    double frameRate = 16; // default frame rate
-    statusBar()->showMessage(tr("parsing the file"));
-
-    if(fileName.endsWith(".txt", Qt::CaseInsensitive)) {
-        QString source_file = wd + QDir::separator() + Parsing::extractSourceFileTXT(fileName);
-        QString ttt_file = wd + QDir::separator() + Parsing::extractTrainTimeTableFileTXT(fileName);
-        QString tt_file  = wd + QDir::separator() + Parsing::extractTrainTypeFileTXT(fileName);
-        QString goal_file = wd + QDir::separator() + Parsing::extractGoalFileTXT(fileName);
-        QFileInfo check_file(source_file);
-        bool readSource         = true;
-        bool readGoal           = true;
-        bool readTrainTypes     = true;
-        bool readTrainTimeTable = true;
-        if(!(check_file.exists() && check_file.isFile())) {
-            readSource = false;
-        } else
-            Log::Info(
-                "MainWindow::addPedestrianGroup: source name: <%s>",
-                source_file.toStdString().c_str());
-
-        check_file = goal_file;
-        if(!(check_file.exists() && check_file.isFile())) {
-            readGoal = false;
-        } else
-            Log::Info(
-                "MainWindow::addPedestrianGroup: goal name: <%s>", goal_file.toStdString().c_str());
-
-        check_file = ttt_file;
-        if(!(check_file.exists() && check_file.isFile())) {
-            readTrainTimeTable = false;
-        } else
-            Log::Info(
-                "MainWindow::addPedestrianGroup: ttt name: <%s>", ttt_file.toStdString().c_str());
-
-        check_file = tt_file;
-        if(!(check_file.exists() && check_file.isFile())) {
-            readTrainTypes = false;
-        } else
-            Log::Info(
-                "MainWindow::addPedestrianGroup: tt name: <%s>", tt_file.toStdString().c_str());
-
-        std::map<int, std::shared_ptr<TrainTimeTable>> trainTimeTable;
-        std::map<std::string, std::shared_ptr<TrainType>> trainTypes;
-        if(readTrainTypes) {
-            Parsing::LoadTrainType(tt_file.toStdString(), trainTypes);
-            extern_trainTypes = trainTypes;
-        }
-        if(readTrainTimeTable) {
-            bool ret = Parsing::LoadTrainTimetable(ttt_file.toStdString(), trainTimeTable);
-            extern_trainTimeTables = trainTimeTable;
-        }
-
-        QString geofileName = Parsing::extractGeometryFilenameTXT(fileName);
-
-        std::tuple<Point, Point> trackStartEnd;
-        double elevation;
-        for(auto tab : trainTimeTable) {
-            int trackId   = tab.second->pid;
-            trackStartEnd = Parsing::GetTrackStartEnd(geofileName, trackId);
-            elevation     = 0;
-
-            Point trackStart = std::get<0>(trackStartEnd);
-            Point trackEnd   = std::get<1>(trackStartEnd);
-
-            tab.second->pstart    = trackStart;
-            tab.second->pend      = trackEnd;
-            tab.second->elevation = elevation;
-
-            Log::Info("=======\n");
-            Log::Info("tab: %d\n", tab.first);
-            Log::Info("Track start: [%.2f, %.2f]\n", trackStart._x, trackStart._y);
-            Log::Info("Track end: [%.2f, %.2f]\n", trackEnd._x, trackEnd._y);
-            Log::Info("Room: %d\n", tab.second->rid);
-            Log::Info("Subroom %d\n", tab.second->sid);
-            Log::Info("Elevation %d\n", tab.second->elevation);
-            Log::Info("=======\n");
-        }
-        for(auto tab : trainTypes)
-            Log::Info("type: %s\n", tab.first.c_str());
-
-        if(false == Parsing::ParseTxtFormat(fileName, dataset, &frameRate))
-            return false;
-    }
-
-    QString frameRateStr = QString::number(frameRate);
-    _visualisationThread->setWindowTitle(fileName);
-    _visualisationThread->slotSetFrameRate(frameRate);
+    QString frameRateStr = QString::number(fps);
+    _visualisationThread->slotSetFrameRate(fps);
     labelFrameNumber->setText("fps: " + frameRateStr + "/" + frameRateStr);
-
-    // shutdown the visio thread
-    extern_shutdown_visual_thread = true;
-    waitForVisioThread();
 
     statusBar()->showMessage(tr("file loaded and parsed"));
 
+    extern_shutdown_visual_thread = true;
+    extern_first_dataset_loaded   = true;
+    waitForVisioThread();
     return true;
 }
 
@@ -1415,6 +1296,7 @@ void MainWindow::dragEnterEvent(QDragEnterEvent * event)
 
 void MainWindow::dropEvent(QDropEvent * event)
 {
+    // TODO(kkratz): This needs to follow the same flow as open file
     QList<QUrl> urls = event->mimeData()->urls();
     if(urls.isEmpty())
         return;
@@ -1431,7 +1313,7 @@ void MainWindow::dropEvent(QDropEvent * event)
         QString fileName = urls[i].toLocalFile();
         if(fileName.isEmpty())
             continue;
-        if(addPedestrianGroup(numberOfDatasetLoaded + i + 1, fileName)) {
+        if(tryParseFile(std::filesystem::path(fileName.toStdString()))) {
             mayPlay = true;
         }
     }
