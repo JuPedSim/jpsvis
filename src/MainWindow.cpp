@@ -61,6 +61,7 @@
 #include <QTemporaryFile>
 #include <QThread>
 #include <QTime>
+#include <filesystem>
 #include <iostream>
 #include <limits>
 #include <sstream>
@@ -227,7 +228,7 @@ MainWindow::~MainWindow()
 //////////////////////////////////////////////////////////////////////////////
 // Public slots
 //////////////////////////////////////////////////////////////////////////////
-bool MainWindow::slotOpenFile()
+void MainWindow::slotOpenFile()
 {
     switch(_state) {
         case ApplicationState::Playing:
@@ -235,18 +236,21 @@ bool MainWindow::slotOpenFile()
         case ApplicationState::NoData:
             [[fallthrough]];
         case ApplicationState::Paused: {
-            stopRendering();
-            clearDataSet(1);
-            const bool could_load_data = addPedestrianGroup(1);
-            if(could_load_data) {
-                _state = ApplicationState::Paused;
-                enablePlayerControls();
-                startRendering();
-            } else {
-                _state = ApplicationState::NoData;
-                disablePlayerControls();
+            const auto path = selectFileToLoad();
+            if(path) {
+                stopRendering();
+                clearDataSet(1);
+                const bool could_load_data =
+                    addPedestrianGroup(1, QString::fromStdString(path.value().string()));
+                if(could_load_data) {
+                    _state = ApplicationState::Paused;
+                    enablePlayerControls();
+                    startRendering();
+                } else {
+                    _state = ApplicationState::NoData;
+                    disablePlayerControls();
+                }
             }
-            return could_load_data;
         }
     }
 }
@@ -358,6 +362,22 @@ void MainWindow::stopRendering()
     labelCurrentAction->setText(" Idle ");
 };
 
+std::optional<std::filesystem::path> MainWindow::selectFileToLoad()
+{
+    const auto fileName = QFileDialog::getOpenFileName(
+        this,
+        "Select the file containing the data to visualize",
+        QDir::currentPath(),
+        "JuPedSim Files (*.xml *.txt);;All Files (*.*)");
+
+    // the action was cancelled
+    if(fileName.isNull()) {
+        return {};
+    } else {
+        return {std::filesystem::path{fileName.toStdString()}};
+    }
+}
+
 //////////////////////////////////////////////////////////////////////////////
 // Old Code
 //////////////////////////////////////////////////////////////////////////////
@@ -404,22 +424,7 @@ void MainWindow::slotClearAllDataset()
 
 bool MainWindow::addPedestrianGroup(int groupID, QString fileName)
 {
-    Log::Info(
-        "Enter MainWindow::addPedestrianGroup with filename <%s>", fileName.toStdString().c_str());
-
-    statusBar()->showMessage(tr("Select a file"));
-    if(fileName.isEmpty())
-        fileName = QFileDialog::getOpenFileName(
-            this,
-            "Select the file containing the data to visualize",
-            QDir::currentPath(),
-            "JuPedSim Files (*.xml *.txt);;All Files (*.*)");
-
-    // the action was cancelled
-    if(fileName.isNull()) {
-        return false;
-    }
-
+    Log::Info("Trying to parse %s", fileName.toStdString().c_str());
     // get and set the working dir
     QFileInfo fileInfo(fileName);
     QString wd = fileInfo.absoluteDir().absolutePath();

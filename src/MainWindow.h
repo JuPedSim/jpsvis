@@ -41,6 +41,8 @@
 #include <QSplitter>
 #include <QStandardItem>
 #include <QTreeWidget>
+#include <filesystem>
+#include <optional>
 #include <vector>
 
 class vtkWindowToImageFilter;
@@ -88,7 +90,7 @@ public Q_SLOTS:
 
     /// Open a trajectory file
     /// @return file could be opened successfully
-    bool slotOpenFile();
+    void slotOpenFile();
 
     /// Toggles replay of loaded data.
     /// @param checked, this is true if the button is pressed otherwise false.
@@ -243,6 +245,7 @@ private:
     void disablePlayerControls();
     void startRendering();
     void stopRendering();
+    std::optional<std::filesystem::path> selectFileToLoad();
 
     /// load settings in the case the remember settings is checked.
     void loadAllSettings();
