@@ -59,15 +59,6 @@ InputFileType detectFileType(const std::filesystem::path & path);
 /// provided for convenience and will be removed in the next version
 bool readJpsGeometryXml(const std::filesystem::path & path, GeometryFactory & geo);
 
-/// provided for convenience and will be removed in the next version
-void parseGeometryXMLV04(QString content, GeometryFactory & geo);
-
-/// provided for convenience and will be removed in the next version
-void parseGeometryTRAV(QString fileName, GeometryFactory & geoFac, QDomNode geoNode = QDomNode());
-
-/// take a large file and find the geometry file location.
-QString extractGeometryFilename(QString & filename);
-
 QString extractGeometryFilenameTXT(QString & filename);
 
 QString extractSourceFileTXT(QString & filename);
@@ -93,8 +84,6 @@ QString extractTrainTimeTableFileTXT(QString & filename);
 bool LoadTrainType(
     std::string Filename,
     std::map<std::string, std::shared_ptr<TrainType>> & trainTypes);
-
-double GetElevation(QString geometryFile, int roomId, int subroomId);
 
 std::tuple<Point, Point> GetTrackStartEnd(QString geometryFile, int trackId);
 }; // namespace Parsing
