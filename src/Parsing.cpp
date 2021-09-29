@@ -34,25 +34,25 @@
 #include "SyncData.h"
 #include "SystemSettings.h"
 #include "TrajectoryPoint.h"
-#include "general/Macros.h"
 #include "geometry/Building.h"
 #include "geometry/FacilityGeometry.h"
 #include "geometry/GeometryFactory.h"
 #include "geometry/JPoint.h"
 #include "geometry/SubRoom.h"
 #include "geometry/Wall.h"
+#include "string_utils.h"
 
 #include <QCoreApplication>
-#include <QDebug>
 #include <QDir>
+#include <QDomNode>
 #include <QEventLoop>
 #include <QFile>
-#include <QMessageBox>
 #include <QProgressDialog>
 #include <QPushButton>
 #include <QString>
 #include <QTextStream>
-#include <cmath>
+#include <cstdio>
+#include <fstream>
 #include <iostream>
 #include <limits>
 #include <memory>
@@ -76,6 +76,34 @@
 #include <vtkStructuredPointsReader.h>
 #include <vtkTriangleFilter.h>
 #include <vtkVersion.h>
+
+/// Helper function to extract values for specific keys from the header in trajectory txt files.
+/// Values are returned as std::ptional<std::string>, if the value was found the string is trimmed.
+/// Note:
+///  * Currently the whole trajectory txt is parsed, this might be slow on very large files.
+///  * If a key is present multiple times in trajectory txt the last value will be returned.
+/// @param values vector of keys to look up in the trajectories header.
+/// @return map of key -> optional<string>
+static std::map<std::string, std::optional<std::string>>
+getValues(const std::vector<std::string> & keys, std::ifstream & ifs)
+{
+    std::string line{};
+    std::map<std::string, std::optional<std::string>> result{};
+    for(auto & key : keys) {
+        result[key] = {};
+    }
+
+    while(getline(ifs, line)) {
+        for(const auto & key : keys) {
+            if(line.rfind(key, 0) == 0) {
+                auto value = line.substr(key.length());
+                trim(value);
+                result[key] = value;
+            }
+        }
+    }
+    return result;
+}
 
 namespace Parsing
 {
@@ -396,149 +424,6 @@ bool readJpsGeometryXml(const std::filesystem::path & path, GeometryFactory & ge
     return true;
 }
 
-QString extractSourceFileTXT(QString & filename)
-{
-    QString extracted_source_name = "";
-    QFile file(filename);
-    QString line;
-    if(file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        QTextStream in(&file);
-        while(!in.atEnd()) {
-            // look for a line with
-            line = in.readLine();
-            if(line.split(":").size() == 2) {
-                if(line.split(":")[0].contains("sources", Qt::CaseInsensitive)) {
-                    extracted_source_name = line.split(":")[1].simplified().remove(' ');
-                    break;
-                }
-            }
-        } // while
-    }     // if open
-    if(extracted_source_name == "") {
-        Log::Warning("Could not extract source file!");
-    }
-
-    else
-        Log::Info(
-            "Extracted source from TXT file <%s>", extracted_source_name.toStdString().c_str());
-    return extracted_source_name;
-}
-
-QString extractTrainTypeFileTXT(QString & filename)
-{
-    QString extracted_tt_name = "";
-    QFile file(filename);
-    QString line;
-    if(file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        QTextStream in(&file);
-        while(!in.atEnd()) {
-            // look for a line with
-            line = in.readLine();
-            if(line.split(":").size() == 2) {
-                if(line.split(":")[0].contains("trainType", Qt::CaseInsensitive)) {
-                    extracted_tt_name = line.split(":")[1].simplified().remove(' ');
-                    break;
-                }
-            }
-        } // while
-    }     // if open
-    if(extracted_tt_name == "") {
-        Log::Warning("Could not extract trainType file!");
-    }
-
-    else
-        Log::Info(
-            "Extracted trainType from TXT file <%s>", extracted_tt_name.toStdString().c_str());
-    return extracted_tt_name;
-}
-
-QString extractTrainTimeTableFileTXT(QString & filename)
-{
-    QString extracted_ttt_name = "";
-    QFile file(filename);
-    QString line;
-    if(file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        QTextStream in(&file);
-        while(!in.atEnd()) {
-            // look for a line with
-            line = in.readLine();
-            if(line.split(":").size() == 2) {
-                if(line.split(":")[0].contains("trainTimeTable", Qt::CaseInsensitive)) {
-                    extracted_ttt_name = line.split(":")[1].simplified().remove(' ');
-                    break;
-                }
-            }
-        } // while
-    }     // if open
-    if(extracted_ttt_name == "") {
-        Log::Warning("Could not extract trainTimeTable file!");
-    }
-
-    else
-        Log::Info(
-            "Extracted trainTimeTable from TXT file <%s>",
-            extracted_ttt_name.toStdString().c_str());
-    return extracted_ttt_name;
-}
-
-
-QString extractGoalFileTXT(QString & filename)
-{
-    QString extracted_goal_name = "";
-    QFile file(filename);
-    QString line;
-    if(file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        QTextStream in(&file);
-        while(!in.atEnd()) {
-            // look for a line with
-            line = in.readLine();
-            if(line.split(":").size() == 2) {
-                if(line.split(":")[0].contains("goals", Qt::CaseInsensitive)) {
-                    extracted_goal_name = line.split(":")[1].simplified().remove(' ');
-                    break;
-                }
-            }
-        } // while
-    }     // if open
-    if(extracted_goal_name == "") {
-        Log::Warning("Could not extract goal file!");
-    }
-
-    else
-        Log::Info("Extracted goal from TXT file <%s>", extracted_goal_name.toStdString().c_str());
-    return extracted_goal_name;
-}
-
-
-QString extractGeometryFilenameTXT(QString & filename)
-{
-    QString extracted_geo_name = "";
-    QFile file(filename);
-    QString line;
-    if(file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        QTextStream in(&file);
-        while(!in.atEnd()) {
-            // look for a line with
-            line = in.readLine();
-            if(line.split(":").size() == 2) {
-                if(line.split(":")[0].contains("geometry", Qt::CaseInsensitive)) {
-                    extracted_geo_name = line.split(":")[1].simplified().remove(' ');
-                    break;
-                }
-            }
-        } // while
-    }     // if open
-    if(extracted_geo_name == "") {
-        Log::Warning("Could not extract geometry file!");
-        //          extracted_geo_name = "geo.xml";
-    }
-
-    else
-        Log::Info(
-            "Extracted geometry from TXT file <%s>", extracted_geo_name.toStdString().c_str());
-    return extracted_geo_name;
-}
-
 bool ParseTxtFormat(const QString & fileName, SyncData * dataset, double * fps)
 {
     Log::Info("parsing txt trajectory <%s> ", fileName.toStdString().c_str());
@@ -803,6 +688,7 @@ std::shared_ptr<TrainTimeTable> parseTrainTimeTableNode(TiXmlElement * e)
 
     return trainTimeTab;
 }
+
 std::shared_ptr<TrainType> parseTrainTypeNode(TiXmlElement * node)
 {
     Log::Info("Loading train type");
@@ -915,5 +801,28 @@ std::shared_ptr<TrainType> parseTrainTypeNode(TiXmlElement * node)
         doors,
     });
     return Type;
+}
+
+
+AdditionalInputs extractAdditionalInputFilePaths(const std::filesystem::path & path)
+{
+    static const std::string geometry_tag{"#geometry:"};
+    static const std::string train_types_tag{"#trainType:"};
+    static const std::string train_time_table_tag{"#trainTimeTable:"};
+    auto file = std::ifstream(path);
+
+    const auto value_map = getValues({geometry_tag, train_types_tag, train_time_table_tag}, file);
+
+    auto cannonicalize = [&path](const auto & opt) -> std::optional<std::filesystem::path> {
+        if(opt) {
+            return path.parent_path() / opt.value();
+        } else
+            return {};
+    };
+
+    return {
+        cannonicalize(value_map.at(geometry_tag)),
+        cannonicalize(value_map.at(train_time_table_tag)),
+        cannonicalize(value_map.at(train_types_tag))};
 }
 } // namespace Parsing

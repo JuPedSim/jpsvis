@@ -34,10 +34,12 @@
 #include "tinyxml.h"
 #include "trains/train.h"
 
-#include <QDomNode>
 #include <QString>
+#include <filesystem>
 #include <map>
 #include <memory>
+#include <optional>
+#include <tuple>
 
 namespace Parsing
 {
@@ -51,6 +53,16 @@ enum class InputFileType {
     UNRECOGNIZED
 };
 
+/// Encapsulates paths to all additional inputs defined in a trajectory txt file.
+struct AdditionalInputs {
+    /// Path to the geometry file
+    std::optional<std::filesystem::path> geometry_path;
+    /// Path to the time table file
+    std::optional<std::filesystem::path> train_time_table_path;
+    /// Path to the train type file
+    std::optional<std::filesystem::path> train_type_path;
+};
+
 /// This function will return the detected file type, this may be 'UNRECOGNISED' if detection fails.
 /// @param path to the file
 /// @return InputFileType that was detected
@@ -58,12 +70,6 @@ InputFileType detectFileType(const std::filesystem::path & path);
 
 /// provided for convenience and will be removed in the next version
 bool readJpsGeometryXml(const std::filesystem::path & path, GeometryFactory & geo);
-
-QString extractGeometryFilenameTXT(QString & filename);
-
-QString extractSourceFileTXT(QString & filename);
-
-QString extractGoalFileTXT(QString & filename);
 
 /// parse the txt file format
 bool ParseTxtFormat(const QString & fileName, SyncData * dataset, double * fps);
@@ -77,13 +83,17 @@ std::shared_ptr<TrainTimeTable> parseTrainTimeTableNode(TiXmlElement * e);
 
 std::shared_ptr<TrainType> parseTrainTypeNode(TiXmlElement * e);
 
-QString extractTrainTypeFileTXT(QString & filename);
-
-QString extractTrainTimeTableFileTXT(QString & filename);
-
 bool LoadTrainType(
     std::string Filename,
     std::map<std::string, std::shared_ptr<TrainType>> & trainTypes);
 
 std::tuple<Point, Point> GetTrackStartEnd(QString geometryFile, int trackId);
+
+/// Extract additional input files from the trajectory txt file.
+/// All paths returned are absolute paths. If no entry has been found for a particular additional
+/// input the optional will be set to NONE.
+/// This functions does not do any constriant checking, i.e. all found paths are returned as is.
+/// @param path to the trajectory txt file, this file is expected to exist.
+/// @return AdditionalInputs that have been found.
+AdditionalInputs extractAdditionalInputFilePaths(const std::filesystem::path & path);
 }; // namespace Parsing

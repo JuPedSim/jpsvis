@@ -171,6 +171,7 @@ set(SRCS
     src/geometry/Wall.cpp
     src/main.cpp
     src/myqtreeview.cpp
+    src/string_utils.cpp
 )
 
 set(HDR
@@ -211,6 +212,7 @@ set(HDR
     src/geometry/Transition.h
     src/geometry/Wall.h
     src/myqtreeview.h
+    src/string_utils.h
     src/trains/train.h
 )
 

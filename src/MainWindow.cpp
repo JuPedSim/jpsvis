@@ -413,65 +413,52 @@ bool MainWindow::tryParseGeometry(const std::filesystem::path & path)
 
 bool MainWindow::tryParseTrajectory(const std::filesystem::path & path)
 {
-    const auto parent_path = path.parent_path();
-    auto fileName          = QString::fromStdString(path.string());
+    const auto parent_path       = path.parent_path();
+    auto fileName                = QString::fromStdString(path.string());
+    const auto additional_inputs = Parsing::extractAdditionalInputFilePaths(path);
 
-    const auto source_file =
-        parent_path / std::filesystem::path(Parsing::extractSourceFileTXT(fileName).toStdString());
-    const bool readSource = std::filesystem::is_regular_file(source_file);
-    if(readSource) {
-        Log::Info("Found source file: \"%s\"", source_file.string().c_str());
-    }
-
-    const auto ttt_file =
-        parent_path /
-        std::filesystem::path(Parsing::extractTrainTimeTableFileTXT(fileName).toStdString());
-    const bool readTrainTimeTable = std::filesystem::is_regular_file(ttt_file);
+    const bool readTrainTimeTable =
+        additional_inputs.train_time_table_path &&
+        std::filesystem::is_regular_file(additional_inputs.train_time_table_path.value());
     if(readTrainTimeTable) {
-        Log::Info("Found train time table file: \"%s\"", ttt_file.string().c_str());
+        Log::Info(
+            "Found train time table file: \"%s\"",
+            additional_inputs.train_time_table_path.value().string().c_str());
     }
 
-    const auto tt_file =
-        parent_path /
-        std::filesystem::path(Parsing::extractTrainTypeFileTXT(fileName).toStdString());
-    const bool readTrainTypes = std::filesystem::is_regular_file(tt_file);
+    const bool readTrainTypes =
+        additional_inputs.train_type_path &&
+        std::filesystem::is_regular_file(additional_inputs.train_type_path.value());
     if(readTrainTypes) {
-        Log::Info("Found train types file: \"%s\"", tt_file.string().c_str());
-    }
-
-    const auto goal_file =
-        parent_path / std::filesystem::path(Parsing::extractGoalFileTXT(fileName).toStdString());
-    const bool readGoal = std::filesystem::is_regular_file(goal_file);
-    if(readGoal) {
-        Log::Info("Found goal file: \"%s\"", goal_file.string().c_str());
+        Log::Info(
+            "Found train types file: \"%s\"",
+            additional_inputs.train_type_path.value().string().c_str());
     }
 
     std::map<std::string, std::shared_ptr<TrainType>> trainTypes;
     if(readTrainTypes) {
-        Parsing::LoadTrainType(tt_file.string(), trainTypes);
+        Parsing::LoadTrainType(additional_inputs.train_type_path.value().string(), trainTypes);
         extern_trainTypes = trainTypes;
     }
 
     std::map<int, std::shared_ptr<TrainTimeTable>> trainTimeTable;
     if(readTrainTimeTable) {
-        bool ret               = Parsing::LoadTrainTimetable(ttt_file.string(), trainTimeTable);
+        bool ret = Parsing::LoadTrainTimetable(
+            additional_inputs.train_time_table_path.value().string(), trainTimeTable);
         extern_trainTimeTables = trainTimeTable;
     }
 
-    const auto geometry_file =
-        parent_path /
-        std::filesystem::path(Parsing::extractGeometryFilenameTXT(fileName).toStdString());
-
-    if(!tryParseGeometry(geometry_file)) {
+    if(!additional_inputs.geometry_path ||
+       !tryParseGeometry(additional_inputs.geometry_path.value())) {
         return false;
     }
 
     std::tuple<Point, Point> trackStartEnd;
     double elevation;
     for(auto tab : trainTimeTable) {
-        int trackId = tab.second->pid;
-        trackStartEnd =
-            Parsing::GetTrackStartEnd(QString::fromStdString(geometry_file.string()), trackId);
+        int trackId   = tab.second->pid;
+        trackStartEnd = Parsing::GetTrackStartEnd(
+            QString::fromStdString(additional_inputs.geometry_path.value().string()), trackId);
         elevation = 0;
 
         Point trackStart = std::get<0>(trackStartEnd);
