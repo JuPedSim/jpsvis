@@ -1,8 +1,9 @@
 #include "CLI.h"
 
+#include <iostream>
 CLI parseCommandLine(
     QCommandLineParser & parser,
-    std::filesystem::path & path,
+    std::optional<std::filesystem::path> & path,
     QString * errorMessage)
 {
     parser.setSingleDashWordOptionMode(QCommandLineParser::ParseAsLongOptions);
@@ -21,10 +22,12 @@ CLI parseCommandLine(
 
     const QStringList positionalArguments = parser.positionalArguments();
     if(positionalArguments.size() > 1) {
-        *errorMessage = "Several trajectory files specified.";
+        *errorMessage = "Several trajectory files specified.  Try: 'jpsvis --help'";
         return CLI::CommandLineError;
     }
-    if(not positionalArguments.isEmpty())
+    if(not positionalArguments.isEmpty()) {
         path = positionalArguments[0].toStdString();
+    }
+
     return CLI::CommandLineOk;
 }

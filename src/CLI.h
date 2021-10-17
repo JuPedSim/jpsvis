@@ -12,5 +12,5 @@ enum class CLI {
 
 CLI parseCommandLine(
     QCommandLineParser & parser,
-    std::filesystem::path & path,
+    std::optional<std::filesystem::path> & path,
     QString * errorMessage);

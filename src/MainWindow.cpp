@@ -84,25 +84,23 @@ MainWindow::MainWindow(QWidget * parent) : QMainWindow(parent)
     // parse command line arguments
     QCommandLineParser commandLineParser;
     QString errorMessage;
-    std::filesystem::path trajPath;
-    switch(parseCommandLine(commandLineParser, trajPath, &errorMessage)) {
+    std::optional<std::filesystem::path> commandLinePath;
+    switch(parseCommandLine(commandLineParser, commandLinePath, &errorMessage)) {
         case CLI::CommandLineOk:
             break;
         case CLI::CommandLineError:
-            fputs(qPrintable(errorMessage), stderr);
-            fputs("\n\n", stderr);
-            fputs(qPrintable(commandLineParser.helpText()), stderr);
+            Log::Error(errorMessage.toStdString().c_str());
             exit(0);
         case CLI::CommandLineVersionRequested:
-            printf(
-                "%s: %s\n",
-                qPrintable(QCoreApplication::applicationName()),
-                qPrintable(QCoreApplication::applicationVersion()));
-            printf("Current date     : %s %s\n", __DATE__, __TIME__);
-            printf("Compiler         : %s (%s)\n", COMPILER.c_str(), COMPILER_VERSION.c_str());
-            printf("Commit hash      : %s\n", GIT_COMMIT_HASH.c_str());
-            printf("Commit date      : %s\n", GIT_COMMIT_DATE.c_str());
-            printf("Branch           : %s\n", GIT_BRANCH.c_str());
+            Log::Info(
+                "%s: %s",
+                qUtf8Printable(QCoreApplication::applicationName()),
+                qUtf8Printable(QCoreApplication::applicationVersion()));
+            Log::Info("Current date     : %s %s", __DATE__, __TIME__);
+            Log::Info("Compiler         : %s (%s)", COMPILER.c_str(), COMPILER_VERSION.c_str());
+            Log::Info("Commit hash      : %s", GIT_COMMIT_HASH.c_str());
+            Log::Info("Commit date      : %s", GIT_COMMIT_DATE.c_str());
+            Log::Info("Branch           : %s", GIT_BRANCH.c_str());
             exit(0);
         case CLI::CommandLineHelpRequested:
             commandLineParser.showHelp();
@@ -149,15 +147,7 @@ MainWindow::MainWindow(QWidget * parent) : QMainWindow(parent)
     statusBar()->addPermanentWidget(&labelRecording);
     // restore the settings
     loadAllSettings();
-
-    if(std::filesystem::exists(trajPath)) {
-        const bool could_load_data = tryParseFile(trajPath);
-        if(could_load_data) {
-            _state = ApplicationState::Paused;
-            enablePlayerControls();
-            startRendering();
-        }
-    }
+    tryLoadFile(commandLinePath);
 }
 
 MainWindow::~MainWindow()
@@ -192,15 +182,7 @@ void MainWindow::slotOpenFile()
                 stopRendering();
                 ui.BtStart->toggled(false);
                 unloadData();
-                const bool could_load_data = tryParseFile(path.value());
-                if(could_load_data) {
-                    _state = ApplicationState::Paused;
-                    enablePlayerControls();
-                    startRendering();
-                } else {
-                    _state = ApplicationState::NoData;
-                    disablePlayerControls();
-                }
+                tryLoadFile(path);
             }
         }
     }
@@ -371,6 +353,19 @@ bool MainWindow::tryParseFile(const std::filesystem::path & path)
             return tryParseTrajectory(path);
         case Parsing::InputFileType::UNRECOGNIZED:
             return false;
+    }
+}
+
+void MainWindow::tryLoadFile(const std::optional<std::filesystem::path> & path)
+{
+    const bool could_load_data = tryParseFile(path.value());
+    if(could_load_data) {
+        _state = ApplicationState::Paused;
+        enablePlayerControls();
+        startRendering();
+    } else {
+        _state = ApplicationState::NoData;
+        disablePlayerControls();
     }
 }
 
