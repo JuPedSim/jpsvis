@@ -33,6 +33,7 @@
 
 #include "ApplicationState.h"
 #include "BuildInfo.h"
+#include "CLI.h"
 #include "Frame.h"
 #include "Log.h"
 #include "Parsing.h"
@@ -78,7 +79,38 @@ MainWindow::MainWindow(QWidget * parent) : QMainWindow(parent)
     // used for saving the settings in a persistant way
     QCoreApplication::setOrganizationName("Forschungszentrum_Juelich_GmbH");
     QCoreApplication::setOrganizationDomain("jupedsim.org");
-    QCoreApplication::setApplicationName("jupedsim");
+    QCoreApplication::setApplicationName("JuPedSim - JPSvis");
+    QCoreApplication::setApplicationVersion(QString::fromStdString(JPSVIS_VERSION));
+    // parse command line arguments
+    QCommandLineParser commandLineParser;
+    QString errorMessage;
+    QString myPath;
+    std::filesystem::path trajPath;
+    switch(parseCommandLine(commandLineParser, myPath, &errorMessage)) {
+        case CLI::CommandLineOk:
+            printf("Trajectory file: %s\n", myPath.toStdString().c_str());
+            trajPath = myPath.toStdString();
+            break;
+        case CLI::CommandLineError:
+            fputs(qPrintable(errorMessage), stderr);
+            fputs("\n\n", stderr);
+            fputs(qPrintable(commandLineParser.helpText()), stderr);
+            exit(0);
+        case CLI::CommandLineVersionRequested:
+            printf(
+                "%s: %s\n",
+                qPrintable(QCoreApplication::applicationName()),
+                qPrintable(QCoreApplication::applicationVersion()));
+            printf("Current date     : %s %s\n", __DATE__, __TIME__);
+            printf("Compiler         : %s (%s)\n", COMPILER.c_str(), COMPILER_VERSION.c_str());
+            printf("Commit hash      : %s\n", GIT_COMMIT_HASH.c_str());
+            printf("Commit date      : %s\n", GIT_COMMIT_DATE.c_str());
+            printf("Branch           : %s\n", GIT_BRANCH.c_str());
+            exit(0);
+        case CLI::CommandLineHelpRequested:
+            commandLineParser.showHelp();
+            Q_UNREACHABLE();
+    }
 
     _visualisation = std::make_unique<Visualisation>(
         this, ui.render_widget->renderWindow(), &_settings, &_trajectories);
@@ -118,7 +150,6 @@ MainWindow::MainWindow(QWidget * parent) : QMainWindow(parent)
     labelRecording.setFrameStyle(QFrame::Panel | QFrame::Sunken);
     labelRecording.setText(" rec: off ");
     statusBar()->addPermanentWidget(&labelRecording);
-
     // restore the settings
     loadAllSettings();
 }

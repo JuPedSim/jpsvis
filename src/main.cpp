@@ -61,14 +61,6 @@
 
 int main(int argc, char * argv[])
 {
-    Log::Info("\n----\nJuPedSim - JPSvis\n");
-    Log::Info("Current date   : %s %s", __DATE__, __TIME__);
-    Log::Info("Version        : %s", JPSVIS_VERSION.c_str());
-    Log::Info("Compiler       : %s (%s)", COMPILER.c_str(), COMPILER_VERSION.c_str());
-    Log::Info("Commit hash    : %s", GIT_COMMIT_HASH.c_str());
-    Log::Info("Commit date    : %s", GIT_COMMIT_DATE.c_str());
-    Log::Info("Branch         : %s\n----\n", GIT_BRANCH.c_str());
-
     QSurfaceFormat::setDefaultFormat(QVTKOpenGLNativeWidget::defaultFormat());
 
     QApplication a(argc, argv);
@@ -79,7 +71,6 @@ int main(int argc, char * argv[])
 
     // force the application to first looks for privated libs
     a.addLibraryPath(QApplication::applicationDirPath() + QDir::separator() + "lib");
-
     MainWindow w;
     w.show();
     return a.exec();
