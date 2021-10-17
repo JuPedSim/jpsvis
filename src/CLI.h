@@ -10,4 +10,7 @@ enum class CLI {
     CommandLineHelpRequested
 };
 
-CLI parseCommandLine(QCommandLineParser & parser, QString & path, QString * errorMessage);
+CLI parseCommandLine(
+    QCommandLineParser & parser,
+    std::filesystem::path & path,
+    QString * errorMessage);

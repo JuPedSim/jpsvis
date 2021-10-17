@@ -84,12 +84,9 @@ MainWindow::MainWindow(QWidget * parent) : QMainWindow(parent)
     // parse command line arguments
     QCommandLineParser commandLineParser;
     QString errorMessage;
-    QString myPath;
     std::filesystem::path trajPath;
-    switch(parseCommandLine(commandLineParser, myPath, &errorMessage)) {
+    switch(parseCommandLine(commandLineParser, trajPath, &errorMessage)) {
         case CLI::CommandLineOk:
-            printf("Trajectory file: %s\n", myPath.toStdString().c_str());
-            trajPath = myPath.toStdString();
             break;
         case CLI::CommandLineError:
             fputs(qPrintable(errorMessage), stderr);
@@ -152,6 +149,15 @@ MainWindow::MainWindow(QWidget * parent) : QMainWindow(parent)
     statusBar()->addPermanentWidget(&labelRecording);
     // restore the settings
     loadAllSettings();
+
+    if(std::filesystem::exists(trajPath)) {
+        const bool could_load_data = tryParseFile(trajPath);
+        if(could_load_data) {
+            _state = ApplicationState::Paused;
+            enablePlayerControls();
+            startRendering();
+        }
+    }
 }
 
 MainWindow::~MainWindow()
