@@ -31,3 +31,29 @@ CLI parseCommandLine(
 
     return CLI::CommandLineOk;
 }
+
+void handleParserArguments(QCommandLineParser & parser, std::optional<std::filesystem::path> & path)
+{
+    QString errorMessage;
+    switch(parseCommandLine(parser, path, &errorMessage)) {
+        case CLI::CommandLineOk:
+            break;
+        case CLI::CommandLineError:
+            Log::Error(errorMessage.toStdString().c_str());
+            exit(0);
+        case CLI::CommandLineVersionRequested:
+            Log::Info(
+                "%s: %s",
+                qUtf8Printable(QCoreApplication::applicationName()),
+                qUtf8Printable(QCoreApplication::applicationVersion()));
+            Log::Info("Current date     : %s %s", __DATE__, __TIME__);
+            Log::Info("Compiler         : %s (%s)", COMPILER.c_str(), COMPILER_VERSION.c_str());
+            Log::Info("Commit hash      : %s", GIT_COMMIT_HASH.c_str());
+            Log::Info("Commit date      : %s", GIT_COMMIT_DATE.c_str());
+            Log::Info("Branch           : %s", GIT_BRANCH.c_str());
+            exit(0);
+        case CLI::CommandLineHelpRequested:
+            parser.showHelp();
+            Q_UNREACHABLE();
+    }
+}

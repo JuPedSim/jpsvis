@@ -33,7 +33,6 @@
 
 #include "ApplicationState.h"
 #include "BuildInfo.h"
-#include "CLI.h"
 #include "Frame.h"
 #include "Log.h"
 #include "Parsing.h"
@@ -71,41 +70,12 @@
 //////////////////////////////////////////////////////////////////////////////
 // Creation & Destruction
 //////////////////////////////////////////////////////////////////////////////
-MainWindow::MainWindow(QWidget * parent) : QMainWindow(parent)
+MainWindow::MainWindow(QWidget * parent, std::optional<std::filesystem::path> path) :
+    QMainWindow(parent), _path(path)
 {
     ui.setupUi(this);
-    this->setWindowTitle("JPSvis");
-
     // used for saving the settings in a persistant way
-    QCoreApplication::setOrganizationName("Forschungszentrum_Juelich_GmbH");
-    QCoreApplication::setOrganizationDomain("jupedsim.org");
-    QCoreApplication::setApplicationName("JuPedSim - JPSvis");
-    QCoreApplication::setApplicationVersion(QString::fromStdString(JPSVIS_VERSION));
-    // parse command line arguments
-    QCommandLineParser commandLineParser;
-    QString errorMessage;
-    std::optional<std::filesystem::path> commandLinePath;
-    switch(parseCommandLine(commandLineParser, commandLinePath, &errorMessage)) {
-        case CLI::CommandLineOk:
-            break;
-        case CLI::CommandLineError:
-            Log::Error(errorMessage.toStdString().c_str());
-            exit(0);
-        case CLI::CommandLineVersionRequested:
-            Log::Info(
-                "%s: %s",
-                qUtf8Printable(QCoreApplication::applicationName()),
-                qUtf8Printable(QCoreApplication::applicationVersion()));
-            Log::Info("Current date     : %s %s", __DATE__, __TIME__);
-            Log::Info("Compiler         : %s (%s)", COMPILER.c_str(), COMPILER_VERSION.c_str());
-            Log::Info("Commit hash      : %s", GIT_COMMIT_HASH.c_str());
-            Log::Info("Commit date      : %s", GIT_COMMIT_DATE.c_str());
-            Log::Info("Branch           : %s", GIT_BRANCH.c_str());
-            exit(0);
-        case CLI::CommandLineHelpRequested:
-            commandLineParser.showHelp();
-            Q_UNREACHABLE();
-    }
+    SetAppInfos();
 
     _visualisation = std::make_unique<Visualisation>(
         this, ui.render_widget->renderWindow(), &_settings, &_trajectories);
@@ -147,7 +117,8 @@ MainWindow::MainWindow(QWidget * parent) : QMainWindow(parent)
     statusBar()->addPermanentWidget(&labelRecording);
     // restore the settings
     loadAllSettings();
-    tryLoadFile(commandLinePath);
+
+    tryLoadFile(_path);
 }
 
 MainWindow::~MainWindow()
@@ -344,7 +315,6 @@ void MainWindow::slotHelpAbout()
 
 bool MainWindow::tryParseFile(const std::filesystem::path & path)
 {
-    Log::Info("Trying to parse %s", path.string().c_str());
     const auto file_type = Parsing::detectFileType(path);
     switch(file_type) {
         case Parsing::InputFileType::GEOMETRY_XML:
@@ -358,7 +328,8 @@ bool MainWindow::tryParseFile(const std::filesystem::path & path)
 
 void MainWindow::tryLoadFile(const std::optional<std::filesystem::path> & path)
 {
-    const bool could_load_data = tryParseFile(path.value());
+    const bool could_load_data = tryParseFile(path.value_or(""));
+    // if not file is passed in command line, path maybe empty.
     if(could_load_data) {
         _state = ApplicationState::Paused;
         enablePlayerControls();
@@ -1032,4 +1003,13 @@ void MainWindow::slotMousePositionUpdated(double x, double y, double z)
 {
     statusBar()->showMessage(
         QString("x:%1 y:%2").arg(QString::number(x, 'f', 2), QString::number(y, 'f', 2)));
+}
+
+void MainWindow::SetAppInfos()
+{
+    this->setWindowTitle("JPSvis");
+    QCoreApplication::setOrganizationName("Forschungszentrum_Juelich_GmbH");
+    QCoreApplication::setOrganizationDomain("jupedsim.org");
+    QCoreApplication::setApplicationName("JuPedSim - JPSvis");
+    QCoreApplication::setApplicationVersion(QString::fromStdString(JPSVIS_VERSION));
 }

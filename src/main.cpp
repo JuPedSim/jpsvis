@@ -42,6 +42,7 @@
  */
 
 #include "BuildInfo.h"
+#include "CLI.h"
 #include "Log.h"
 #include "MainWindow.h"
 
@@ -71,7 +72,12 @@ int main(int argc, char * argv[])
 
     // force the application to first looks for privated libs
     a.addLibraryPath(QApplication::applicationDirPath() + QDir::separator() + "lib");
-    MainWindow w;
+
+    QCommandLineParser commandLineParser;
+    std::optional<std::filesystem::path> commandLinePath = std::nullopt;
+    handleParserArguments(commandLineParser, commandLinePath);
+
+    MainWindow w(0, commandLinePath);
     w.show();
     return a.exec();
 }

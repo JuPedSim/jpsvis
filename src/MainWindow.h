@@ -59,7 +59,7 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    MainWindow(QWidget * parent = 0);
+    MainWindow(QWidget * parent = 0, std::optional<std::filesystem::path> path = {});
     virtual ~MainWindow();
 
 public slots:
@@ -216,13 +216,14 @@ private:
 
     /// reset all dataset, to the beginning
     void resetAllFrameCursor();
+    void SetAppInfos();
 
 private:
     Ui::mainwindow ui;
     ApplicationState _state{ApplicationState::NoData};
     Settings _settings;
     TrajectoryData _trajectories;
-
+    std::optional<std::filesystem::path> _path;
     std::unique_ptr<Visualisation> _visualisation;
     QLabel labelCurrentAction;
     QLabel labelFrameNumber;
