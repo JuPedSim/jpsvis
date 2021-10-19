@@ -19,6 +19,4 @@ CLI parseCommandLine(
     std::optional<std::filesystem::path> & path,
     QString * errorMessage);
 
-void handleParserArguments(
-    QCommandLineParser & parser,
-    std::optional<std::filesystem::path> & path);
+std::optional<std::filesystem::path> handleParserArguments();

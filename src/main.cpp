@@ -73,9 +73,7 @@ int main(int argc, char * argv[])
     // force the application to first looks for privated libs
     a.addLibraryPath(QApplication::applicationDirPath() + QDir::separator() + "lib");
 
-    QCommandLineParser commandLineParser;
-    std::optional<std::filesystem::path> commandLinePath = std::nullopt;
-    handleParserArguments(commandLineParser, commandLinePath);
+    std::optional<std::filesystem::path> commandLinePath = handleParserArguments();
 
     MainWindow w(nullptr, commandLinePath);
     w.show();

@@ -32,15 +32,17 @@ CLI parseCommandLine(
     return CLI::CommandLineOk;
 }
 
-void handleParserArguments(QCommandLineParser & parser, std::optional<std::filesystem::path> & path)
+std::optional<std::filesystem::path> handleParserArguments()
 {
     QString errorMessage;
+    QCommandLineParser parser;
+    std::optional<std::filesystem::path> path = {};
     switch(parseCommandLine(parser, path, &errorMessage)) {
         case CLI::CommandLineOk:
             break;
         case CLI::CommandLineError:
             Log::Error(errorMessage.toStdString().c_str());
-            exit(0);
+            break;
         case CLI::CommandLineVersionRequested:
             Log::Info(
                 "%s: %s",
@@ -56,4 +58,5 @@ void handleParserArguments(QCommandLineParser & parser, std::optional<std::files
             parser.showHelp();
             Q_UNREACHABLE();
     }
+    return path;
 }
