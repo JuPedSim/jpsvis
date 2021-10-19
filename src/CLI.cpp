@@ -11,7 +11,7 @@ CLI parseCommandLine(
     const QCommandLineOption helpOption    = parser.addHelpOption();
     const QCommandLineOption versionOption = parser.addVersionOption();
     if(!parser.parse(QCoreApplication::arguments())) {
-        *errorMessage = parser.errorText();
+        *errorMessage = parser.errorText() + ". Try: 'jpsvis --help'";
         return CLI::CommandLineError;
     }
     if(parser.isSet(versionOption))
@@ -42,7 +42,7 @@ std::optional<std::filesystem::path> handleParserArguments()
             break;
         case CLI::CommandLineError:
             Log::Error(errorMessage.toStdString().c_str());
-            break;
+            std::exit(0);
         case CLI::CommandLineVersionRequested:
             Log::Info(
                 "%s: %s",
@@ -53,7 +53,7 @@ std::optional<std::filesystem::path> handleParserArguments()
             Log::Info("Commit hash      : %s", GIT_COMMIT_HASH.c_str());
             Log::Info("Commit date      : %s", GIT_COMMIT_DATE.c_str());
             Log::Info("Branch           : %s", GIT_BRANCH.c_str());
-            exit(0);
+            std::exit(0);
         case CLI::CommandLineHelpRequested:
             parser.showHelp();
             Q_UNREACHABLE();
