@@ -77,7 +77,7 @@ int main(int argc, char * argv[])
     std::optional<std::filesystem::path> commandLinePath = std::nullopt;
     handleParserArguments(commandLineParser, commandLinePath);
 
-    MainWindow w(0, commandLinePath);
+    MainWindow w(nullptr, commandLinePath);
     w.show();
     return a.exec();
 }

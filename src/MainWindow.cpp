@@ -71,7 +71,7 @@
 // Creation & Destruction
 //////////////////////////////////////////////////////////////////////////////
 MainWindow::MainWindow(QWidget * parent, std::optional<std::filesystem::path> path) :
-    QMainWindow(parent), _path(path)
+    QMainWindow(parent)
 {
     ui.setupUi(this);
     // used for saving the settings in a persistant way
@@ -117,8 +117,8 @@ MainWindow::MainWindow(QWidget * parent, std::optional<std::filesystem::path> pa
     statusBar()->addPermanentWidget(&labelRecording);
     // restore the settings
     loadAllSettings();
-
-    tryLoadFile(_path);
+    if(path)
+        tryLoadFile(path.value());
 }
 
 MainWindow::~MainWindow()
@@ -153,7 +153,8 @@ void MainWindow::slotOpenFile()
                 stopRendering();
                 ui.BtStart->toggled(false);
                 unloadData();
-                tryLoadFile(path);
+                if(path)
+                    tryLoadFile(path.value());
             }
         }
     }
@@ -326,9 +327,9 @@ bool MainWindow::tryParseFile(const std::filesystem::path & path)
     }
 }
 
-void MainWindow::tryLoadFile(const std::optional<std::filesystem::path> & path)
+void MainWindow::tryLoadFile(const std::filesystem::path & path)
 {
-    const bool could_load_data = tryParseFile(path.value_or(""));
+    const bool could_load_data = tryParseFile(path);
     // if not file is passed in command line, path maybe empty.
     if(could_load_data) {
         _state = ApplicationState::Paused;

@@ -204,7 +204,7 @@ private:
 
     /// @return false if something went wrong.
     bool tryParseFile(const std::filesystem::path & path = {});
-    void tryLoadFile(const std::optional<std::filesystem::path> & path);
+    void tryLoadFile(const std::filesystem::path & path);
     bool tryParseGeometry(const std::filesystem::path & path);
     bool tryParseTrajectory(const std::filesystem::path & path);
 
@@ -223,7 +223,6 @@ private:
     ApplicationState _state{ApplicationState::NoData};
     Settings _settings;
     TrajectoryData _trajectories;
-    std::optional<std::filesystem::path> _path;
     std::unique_ptr<Visualisation> _visualisation;
     QLabel labelCurrentAction;
     QLabel labelFrameNumber;
