@@ -25,7 +25,7 @@ CLI parseCommandLine(
         *errorMessage = "Several trajectory files specified.  Try: 'jpsvis --help'";
         return CLI::CommandLineError;
     }
-    if(not positionalArguments.isEmpty()) {
+    if(!positionalArguments.isEmpty()) {
         path = positionalArguments[0].toStdString();
     }
 

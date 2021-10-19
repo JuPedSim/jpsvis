@@ -329,9 +329,8 @@ bool MainWindow::tryParseFile(const std::filesystem::path & path)
 
 void MainWindow::tryLoadFile(const std::filesystem::path & path)
 {
-    const bool could_load_data = tryParseFile(path);
-    // if not file is passed in command line, path maybe empty.
-    if(could_load_data) {
+    const bool couldLoadData = tryParseFile(path);
+    if(couldLoadData) {
         _state = ApplicationState::Paused;
         enablePlayerControls();
         startRendering();
