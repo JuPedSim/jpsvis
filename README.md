@@ -15,6 +15,7 @@ For the visualization module (`jpsvis`) the following libraries are required.
 |------|---------|
 | Qt   | >= 5.12 |
 | VTK  | >= 9.0  |
+| GLM  | 		 |
 
 ### Install requirements for Mac OS X (with Homebrew)
 
