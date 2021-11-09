@@ -230,6 +230,8 @@ void MainWindow::enablePlayerControls()
     ui.actionTogglePlayback->setEnabled(true);
     ui.actionTogglePlayback->setChecked(false);
     ui.actionRewind->setEnabled(true);
+    ui.actionNextFrame->setEnabled(true);
+    ui.actionPreviousFrame->setEnabled(true);
 }
 
 void MainWindow::disablePlayerControls()
@@ -243,6 +245,8 @@ void MainWindow::disablePlayerControls()
     ui.actionTogglePlayback->setEnabled(false);
     ui.actionTogglePlayback->setChecked(false);
     ui.actionRewind->setEnabled(false);
+    ui.actionNextFrame->setEnabled(false);
+    ui.actionPreviousFrame->setEnabled(false);
 }
 
 void MainWindow::startRendering()
