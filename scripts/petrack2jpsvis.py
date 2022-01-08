@@ -124,10 +124,10 @@ def write_geometry(data, Unit, geo_file):
     """
     Delta = 100 if Unit == "cm" else 1
     # 1 m around to better contain the trajectories
-    xmin = (np.min(data[:, 2]) - Delta)
-    xmax = (np.max(data[:, 2]) + Delta)
-    ymin = (np.min(data[:, 3]) - Delta)
-    ymax = (np.max(data[:, 3]) + Delta)
+    xmin = np.min(data[:, 2]) - Delta
+    xmax = np.max(data[:, 2]) + Delta
+    ymin = np.min(data[:, 3]) - Delta
+    ymax = np.max(data[:, 3]) + Delta
     data = ET.Element('geometry')
     data.set('version', '0.8')
     data.set('caption', 'experiment')
@@ -264,7 +264,7 @@ def main():
         data = data[data[:, 1].argsort()]  # sort by frame
         data = extend_data(data, unit)
         geometry_file = File.parent.joinpath("geometry.xml")
-        write_geometry(data, unit, geometry_file)
+        write_geometry(data, unit_s, geometry_file)
         agents = np.unique(data[:, 0]).astype(int)
         for agent in agents:
             ped = data[data[:, 0] == agent]
