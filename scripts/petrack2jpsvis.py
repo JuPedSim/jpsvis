@@ -8,8 +8,7 @@ import numpy as np
 parser = argparse.ArgumentParser(
     description='''Modify trajectory-files to be
     visualized with jpsvis.
-    Trajectories are converted from cm to m.
-    Moreover, new columns are added (A, B, ANGLE, COLOR)
+    New columns are added (A, B, ANGLE, COLOR)
     A and B are constants. ANGLE is zero (so agents are circles)
     COLOR is calculated based on the speed assuming
     a maximal speed of 1.5m/s.
@@ -189,8 +188,8 @@ if __name__ == '__main__':
     except ValueError:
         sys.exit(f"can not convert input df {args.df} to int")
 
-    with open(File, encoding="utf8") as f:
-        header, fps, unit_s = extract_info(f)
+    with open(File, encoding="utf8") as finput:
+        header, fps, unit_s = extract_info(finput)
         unit = 100 if unit_s == "cm" else 1
         print(f"file: {File}")
         print(header)
@@ -198,6 +197,7 @@ if __name__ == '__main__':
         print(f"df: {df}")
         print(f"unit: {unit_s}")
         data = np.loadtxt(File)
+        
         rows, cols = data.shape
         H = 1.5 * np.ones((rows, 1)) * unit  # hight 150cm
         A = 0.3 * np.ones((rows, 1)) * unit  # circle with radius 30cm
