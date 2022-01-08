@@ -1,34 +1,41 @@
 import sys
 from os.path import exists
 import argparse
-import numpy as np
+from typing import Tuple
 import xml.etree.ElementTree as ET
+import numpy as np
 
 parser = argparse.ArgumentParser(
     description='''Modify trajectory-files to be
     visualized with jpsvis.
     Trajectories are converted from cm to m.
     Moreover, new columns are added (A, B, ANGLE, COLOR)
+    A and B are constants. ANGLE is zero (so agents are circles)
+    COLOR is calculated based on the speed assuming
+    a maximal speed of 1.5m/s.
     '''
 )
 parser.add_argument("-f", "--file", required=True, type=str,
                     help='Petrack trajectory file')
+parser.add_argument("-d", "--df", default="10", dest='df',
+                    help='''number of frames forward
+                    to calculate the speed''')
 parser.add_argument("--cm", dest='convert', action='store_false',
                     help='keep trajectories in cm')
 parser.set_defaults(convert=True)
 args = parser.parse_args()
 
 
-def extract_info(F) -> (str, int):
-    """
-    extract first 3 lines from experiment file.
+def extract_info(FileD) -> Tuple[str, int]:
+    """extract first 3 lines from experiment file.
     Then append a description, a geometry and finally the
     jpscore header.
-    return fps as well
+    :param FileD: file
+    :returns: header and fps
     """
-    header = "description: trajectories converted by {}\n".format(sys.argv[0])
+    header = f"description: trajectories converted by {sys.argv[0]}\n"
     fps = 16
-    for line in f:
+    for line in FileD:
         header += line.split("#")[-1].lstrip().split("fps")[0]
         if "framerate" in line:
             header += "\ngeometry: geometry.xml\n"
@@ -44,26 +51,47 @@ def extract_info(F) -> (str, int):
     return (header, fps)
 
 
-def speed(data_now, data_future, df, fps) -> np.array:
-    #pdb.set_trace()
-    
-    Pos2 = data_future[:, 2:4]
-    Pos = data_now[:, 2:4]
-    
-    Delta_square = np.square(Pos2 - Pos)
-    
+def Speed(traj, df, fps) -> np.array:
+    """Calculates the speed from the trajectory points.
+    Using the forward formula
+    speed(f) = (X(f+df) - X(f))/df [1]
+    note: The last df frames are not calculated using [1].
+    It is assumes that the speed in the last frames
+    does not change
+    :param traj: trajectory of ped (x, y). 2D array
+    :param df: number of frames forwards
+    :param fps: frames per seconds
+
+    example:
+    df=4, S=10
+         0 1 2 3 4 5 6 7 8 9
+       X * * * * * * * * * *
+       V + + + + + +
+         *       *
+           *       *      X[df:]
+    X[:S-df] *       *       │
+    │          *       *   ◄─┘
+    └────────►   *       *
+                   *       *
+    """
+    Size = traj.shape[0]
+    assert Size >= df, f"Trajectory too small. Size = {Size}, df= {df}"
+    Speed = np.ones(Size)
+    Delta_square = np.square(traj[df:, :] - traj[:Size-df, :])
     s = np.sqrt(Delta_square[:, 0] + Delta_square[:, 1])
-    
-    Speed = s/df*fps
+    Speed[: Size-df] = s / df * fps
+    Speed[Size-df:] = Speed[Size-df-1]
     return Speed
 
 
-def write_geometry(data, cm=1):
-    '''
-    Creates a bounding box around the trajectories
-    Output: geometry.xml
-    '''
-    Delta = 5  # some more space to better contain the trajectories
+def write_geometry(data, cm=100):
+    """Creates a bounding box around the trajectories
+    :param data: 2D-array
+    :param cm: trajectories will be devided by this variable
+               and hence may be converted to m
+    :returns: geometry file names geometry.xml
+    """
+    Delta = 100  # 1 m around to better contain the trajectories
     xmin = (np.min(data[2, :]) - Delta)/cm
     xmax = (np.max(data[2, :]) + Delta)/cm
     ymin = (np.min(data[3, :]) - Delta)/cm
@@ -88,65 +116,72 @@ def write_geometry(data, cm=1):
     polygon.set('caption', 'wall')
     polygon.set('type', 'internal')
     vertex = ET.SubElement(polygon, 'vertex')
-    vertex.set('px', '%.2f' % xmin)
-    vertex.set('py', '%.2f' % ymin)
+    vertex.set('px', f'{xmin}')
+    vertex.set('py', f'{ymin}')
     vertex = ET.SubElement(polygon, 'vertex')
-    vertex.set('px', '%.2f' % xmax)
-    vertex.set('py', '%.2f' % ymin)
+    vertex.set('px', f'{xmax}')
+    vertex.set('py', f'{ymin}')
     # poly2
     polygon = ET.SubElement(subroom, 'polygon')
     vertex = ET.SubElement(polygon, 'vertex')
-    vertex.set('px', '%.2f' % xmax)
-    vertex.set('py', '%.2f' % ymin)
+    vertex.set('px', f'{xmax}')
+    vertex.set('py', f'{ymin}')
     vertex = ET.SubElement(polygon, 'vertex')
-    vertex.set('px', '%.2f' % xmax)
-    vertex.set('py', '%.2f' % ymax)
+    vertex.set('px', f'{xmax}')
+    vertex.set('py', f'{ymax}')
     # poly3
     polygon = ET.SubElement(subroom, 'polygon')
     vertex = ET.SubElement(polygon, 'vertex')
-    vertex.set('px', '%.2f' % xmax)
-    vertex.set('py', '%.2f' % ymax)
+    vertex.set('px', f'{xmax}')
+    vertex.set('py', f'{ymax}')
     vertex = ET.SubElement(polygon, 'vertex')
-    vertex.set('px', '%.2f' % xmin)
-    vertex.set('py', '%.2f' % ymax)
+    vertex.set('px', f'{xmin}')
+    vertex.set('py', f'{ymax}')
     # poly4
     polygon = ET.SubElement(subroom, 'polygon')
     vertex = ET.SubElement(polygon, 'vertex')
-    vertex.set('px', '%.2f' % xmin)
-    vertex.set('py', '%.2f' % ymax)
+    vertex.set('px', f'{xmin}')
+    vertex.set('py', f'{ymax}')
     vertex = ET.SubElement(polygon, 'vertex')
-    vertex.set('px', '%.2f' % xmin)
-    vertex.set('py', '%.2f' % ymin)
+    vertex.set('px', f'{xmin}')
+    vertex.set('py', f'{ymin}')
     b_xml = ET.tostring(data, encoding='utf8', method='xml')
     with open("geometry.xml", "wb") as f:
         f.write(b_xml)
 
 
 def data_at_frame(data, frame) -> np.array:
+    """Get data at frame
+    :param data: the trajectories from the file
+    :param frame: frame number
+    :returns: data at frame <frame>
+    """
     return data[data[:, 1] == frame]
 
 
 if __name__ == '__main__':
     File = args.file
     if not exists(File):
-        sys.exit("file {} does not exist!".format(File))
+        sys.exit(f'file {File} does not exist!')
 
     cm = 100 if args.convert else 1
+    try:
+        df = int(args.df)
+    except ValueError:
+        sys.exit(f"can not convert input df {args.df} to int")
 
-    with open(File) as f:
+    with open(File, encoding="utf8") as f:
         header, fps = extract_info(f)
-        print("------")
-        print("file: {}".format(File))
+        print(f"file: {File}")
         print(header)
-        print("fps: {}".format(fps))
-        print("------")
+        print(f"fps: {fps}")
+        print(f"df: {df}")
         data = np.loadtxt(File)
         rows, cols = data.shape
-        A = 30 * np.ones((rows, 1))
-        B = 30 * np.ones((rows, 1))
-        ANGLE = np.zeros((rows, 1))
-        # COLOR = set_color(data)
-        COLOR = 100 * np.ones((rows, 1))
+        A = 30 * np.ones((rows, 1))  # circle with radius 20cm
+        B = 30 * np.ones((rows, 1))  # circle with radius 20cm
+        ANGLE = np.zeros((rows, 1))  # does not matter since circles
+        COLOR = 100 * np.ones((rows, 1))  # will be set wrt. speed
         data = np.hstack((data, A, B, ANGLE, COLOR))
         write_geometry(data, cm)
         shape = data.shape
@@ -154,20 +189,23 @@ if __name__ == '__main__':
         cm2m = np.ones(shape[1])
         cm2m[2:-2] *= cm  # exclude id, fr, angle and color from conversion
         frames = np.unique(data[:, 1]).astype(int)
-        df = 10
-        v0 = 1.5
-        
+        ids = np.unique(data[:, 0]).astype(int)
+        v0 = 150  # max. speed (assumed) [cm/s]
+        print("--> sort trajectories frame-wise")
         for frame in frames:
-            #print(frame, np.max(frames))
             data_fr = data_at_frame(data, frame)/cm2m
-            data_fr2 = data_at_frame(data, frame+df)/cm2m
-            #s = speed(data_fr, data_fr2, df, fps)
-            #Color = s/v0*255            
-            #data_fr[:, -1] = Color
             result = np.vstack((result, data_fr))
 
+        print("--> calculate speeds")
+        for i in ids:
+            ped = data[data[:, 0] == i]
+            speed = Speed(ped[:, 2:4], df, fps)
+            result[result[:, 0] == i, -1] = speed/v0*255
+
         filename = "jps_" + File
+        print(f"--> write results in {filename}")
         np.savetxt(filename, result[1:, :],
+                   # skip the first line (initialization)
                    fmt=["%d", "%d",  # id frame
                         "%1.2f", "%1.2f", "%1.2f",  # x, y, z
                         "%1.2f", "%1.2f",  # A, B
@@ -176,5 +214,3 @@ if __name__ == '__main__':
                    header=header,
                    comments='#',
                    delimiter='\t')
-
-        print("-> ", filename)
