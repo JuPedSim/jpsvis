@@ -69,8 +69,8 @@ def extract_info(FileD) -> Tuple[str, int]:
     return (header, fps, unit)
 
 
-def Speed(traj, df, fps) -> np.array:
-    """Calculates the speed from the trajectory points.
+def Speed_Angle(traj, df, fps) -> Tuple[np.array, np.array]:
+    """Calculates the speed and the angle from the trajectory points.
     Using the forward formula
     speed(f) = (X(f+df) - X(f))/df [1]
     note: The last df frames are not calculated using [1].
@@ -79,6 +79,8 @@ def Speed(traj, df, fps) -> np.array:
     :param traj: trajectory of ped (x, y). 2D array
     :param df: number of frames forwards
     :param fps: frames per seconds
+
+    :returns: speed, angle
 
     example:
     df=4, S=10
@@ -95,11 +97,20 @@ def Speed(traj, df, fps) -> np.array:
     Size = traj.shape[0]
     assert Size >= df, f"Trajectory too small. Size = {Size}, df= {df}"
     Speed = np.ones(Size)
-    Delta_square = np.square(traj[df:, :] - traj[:Size-df, :])
-    s = np.sqrt(Delta_square[:, 0] + Delta_square[:, 1])
+    Angle = np.ones(Size)
+    Delta = traj[df:, :] - traj[:Size-df, :]
+    Delta_X = Delta[:, 0]
+    Delta_Y = Delta[:, 1]
+    Delta_square = np.square(Delta)
+    Delta_X_square = Delta_square[:, 0]
+    Delta_Y_square = Delta_square[:, 1]
+    Angle[: Size-df] = np.arctan2(Delta_Y,
+                                  Delta_X)*180/np.pi
+    s = np.sqrt(Delta_X_square + Delta_Y_square)
     Speed[: Size-df] = s / df * fps
     Speed[Size-df:] = Speed[Size-df-1]
-    return Speed
+    Angle[Size-df:] = Angle[Size-df-1]
+    return Speed, Angle
 
 
 def write_geometry(data, Unit, geo_file):
@@ -187,7 +198,7 @@ def extend_data(data, _unit) -> np.array:
     rows, cols = data.shape
     H = 1.5 * np.ones((rows, 1)) * _unit  # hight 150cm
     A = 0.3 * np.ones((rows, 1)) * _unit  # circle with radius 30cm
-    B = 0.3 * np.ones((rows, 1)) * _unit  # circle with radius 30cm
+    B = 0.2 * np.ones((rows, 1)) * _unit  # circle with radius 30cm
     ANGLE = np.zeros((rows, 1))  # does not matter since circles
     COLOR = 100 * np.ones((rows, 1))  # will be set wrt. speed
     if cols == 4:  # some trajectories do not have Z
@@ -257,11 +268,18 @@ def main():
         agents = np.unique(data[:, 0]).astype(int)
         for agent in agents:
             ped = data[data[:, 0] == agent]
-            speed = Speed(ped[:, 2:4], df, fps)
+            speed, angle = Speed_Angle(ped[:, 2:4], df, fps)
             data[data[:, 0] == agent, -1] = speed/v0*255
-
+            data[data[:, 0] == agent, -2] = angle
         write_trajectories(data, header, File)
 
 
 if __name__ == '__main__':
+    # import cProfile
+    # import pstats
+    # profiler = cProfile.Profile()
+    # profiler.enable()
     main()
+    # profiler.disable()
+    # stats = pstats.Stats(profiler).sort_stats('cumtime')
+    # print(stats.print_stats())
