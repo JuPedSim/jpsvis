@@ -40,23 +40,25 @@ def extract_info(FileD) -> Tuple[str, int]:
     header = f"description: trajectories converted by {sys.argv[0]}\n"
     fps = 16
     unit = "cm"
-    hasHeader = False
+    hasPetrackHeader = False
     for line in FileD:
         if "PeTrack" in line:
-            hasHeader = True
+            hasPetrackHeader = True
 
-        if hasHeader:
-            header += line.split("#")[-1].lstrip().split("fps")[0]
+        if hasPetrackHeader:
+            if not line.startswith("#"):  # now the trajectories start
+                break
+
+            header += line
             if "x/" in line:
                 unit = line.split("x/")[-1].split()[0]
 
             if "framerate" in line:
-                header += "\ngeometry: geometry.xml\n"
                 fps = line.split("fps")[0].split()[-1]
 
-            if not line.startswith("#"):  # now the trajectories start
-                break
-
+    # jpsvis part
+    header += f"\nframerate: {fps}"
+    header += "\ngeometry: geometry.xml\n"
     header += "ID\tFR\tX\tY\tZ\tA\tB\tANGLE\tCOLOR"
     try:
         fps = int(fps)
@@ -197,11 +199,16 @@ if __name__ == '__main__':
         print(f"unit: {unit_s}")
         data = np.loadtxt(File)
         rows, cols = data.shape
+        H = 1.5 * np.ones((rows, 1)) * unit  # hight 150cm
         A = 0.3 * np.ones((rows, 1)) * unit  # circle with radius 30cm
         B = 0.3 * np.ones((rows, 1)) * unit  # circle with radius 30cm
         ANGLE = np.zeros((rows, 1))  # does not matter since circles
         COLOR = 100 * np.ones((rows, 1))  # will be set wrt. speed
-        data = np.hstack((data, A, B, ANGLE, COLOR))
+        if cols == 4:  # some trajectories do not have Z
+            data = np.hstack((data, H, A, B, ANGLE, COLOR))
+        else:
+            data = np.hstack((data, A, B, ANGLE, COLOR))
+
         geometry_file = File.parent.joinpath("geometry.xml")
         write_geometry(data, unit, geometry_file)
         shape = data.shape
