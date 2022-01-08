@@ -4,6 +4,7 @@ import argparse
 from typing import Tuple
 import xml.etree.ElementTree as ET
 import numpy as np
+from pandas import read_csv
 
 parser = argparse.ArgumentParser(
     description='''Modify trajectory-files to be
@@ -273,7 +274,10 @@ def main():
         unit = 100 if unit_s == "cm" else 1
         v0 = 1.5 * unit  # max. speed (assumed) [unit/s]
         write_debug_msg(File, fps, df, unit_s)
-        data = np.loadtxt(File)
+        data = read_csv(File,
+                        sep=r"\s+",
+                        dtype=np.float64,
+                        comment="#").values
         data = extend_data(data, unit)
         geometry_file = File.parent.joinpath("geometry.xml")
         write_geometry(data, unit, geometry_file)
