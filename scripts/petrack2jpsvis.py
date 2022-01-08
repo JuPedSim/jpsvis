@@ -92,10 +92,10 @@ def write_geometry(data, cm=100):
     :returns: geometry file names geometry.xml
     """
     Delta = 100  # 1 m around to better contain the trajectories
-    xmin = (np.min(data[2, :]) - Delta)/cm
-    xmax = (np.max(data[2, :]) + Delta)/cm
-    ymin = (np.min(data[3, :]) - Delta)/cm
-    ymax = (np.max(data[3, :]) + Delta)/cm
+    xmin = (np.min(data[:, 2]) - Delta)/cm
+    xmax = (np.max(data[:, 2]) + Delta)/cm
+    ymin = (np.min(data[:, 3]) - Delta)/cm
+    ymax = (np.max(data[:, 3]) + Delta)/cm
     data = ET.Element('geometry')
     data.set('version', '0.8')
     data.set('caption', 'experiment')
