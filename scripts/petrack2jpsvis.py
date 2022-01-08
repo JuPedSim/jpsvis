@@ -1,5 +1,5 @@
 import sys
-from os.path import exists
+from pathlib import Path
 import argparse
 from typing import Tuple
 import xml.etree.ElementTree as ET
@@ -44,13 +44,12 @@ def extract_info(FileD) -> Tuple[str, int]:
     for line in FileD:
         if "PeTrack" in line:
             hasHeader = True
-            print("has ", hasHeader)
+
         if hasHeader:
             header += line.split("#")[-1].lstrip().split("fps")[0]
             if "x/" in line:
-                print(line)
                 unit = line.split("x/")[-1].split()[0]
-                print("--> ", unit)
+
             if "framerate" in line:
                 header += "\ngeometry: geometry.xml\n"
                 fps = line.split("fps")[0].split()[-1]
@@ -100,11 +99,14 @@ def Speed(traj, df, fps) -> np.array:
     return Speed
 
 
-def write_geometry(data, Unit):
+def write_geometry(data, Unit, geo_file):
     """Creates a bounding box around the trajectories
+
     :param data: 2D-array
     :param Unit: Unit of the trajectories (cm or m)
+    :param geo_file: write geometry in this file
     :returns: geometry file names geometry.xml
+
     """
     Delta = 100 if Unit == "cm" else 1
     # 1 m around to better contain the trajectories
@@ -162,7 +164,7 @@ def write_geometry(data, Unit):
     vertex.set('px', f'{xmin}')
     vertex.set('py', f'{ymin}')
     b_xml = ET.tostring(data, encoding='utf8', method='xml')
-    with open("geometry.xml", "wb") as f:
+    with open(geo_file, "wb") as f:
         f.write(b_xml)
 
 
@@ -176,8 +178,8 @@ def data_at_frame(data, frame) -> np.array:
 
 
 if __name__ == '__main__':
-    File = args.file
-    if not exists(File):
+    File = Path(args.file)
+    if not File.exists():
         sys.exit(f'file {File} does not exist!')
 
     try:
@@ -200,7 +202,8 @@ if __name__ == '__main__':
         ANGLE = np.zeros((rows, 1))  # does not matter since circles
         COLOR = 100 * np.ones((rows, 1))  # will be set wrt. speed
         data = np.hstack((data, A, B, ANGLE, COLOR))
-        write_geometry(data, unit)
+        geometry_file = File.parent.joinpath("geometry.xml")
+        write_geometry(data, unit, geometry_file)
         shape = data.shape
         result = np.empty(shape[1])
         frames = np.unique(data[:, 1]).astype(int)
@@ -217,7 +220,7 @@ if __name__ == '__main__':
             speed = Speed(ped[:, 2:4], df, fps)
             result[result[:, 0] == i, -1] = speed/v0*255
 
-        filename = "jps_" + File
+        filename = File.parent.joinpath("jps_" + File.name)
         print(f"--> write results in {filename}")
         np.savetxt(filename, result[1:, :],
                    # skip the first line (initialization)
