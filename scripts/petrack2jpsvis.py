@@ -171,15 +171,6 @@ def write_geometry(data, Unit, geo_file):
         f.write(b_xml)
 
 
-def data_at_frame(data, frame) -> np.array:
-    """Get data at frame
-    :param data: the trajectories from the file
-    :param frame: frame number
-    :returns: data at frame <frame>
-    """
-    return data[data[:, 1] == frame]
-
-
 def extend_data(data, _unit) -> np.array:
     """Append some new columns to the trajectories
     for visualisation purposes. These are:
