@@ -207,25 +207,6 @@ def extend_data(data, _unit) -> np.array:
     return data
 
 
-def sort_data_framewise(data) -> np.array:
-    """sort trajectories framewise
-
-    :param data: input trajectories
-    :type data: np.array
-    :returns: np.array
-
-    """
-    print("--> sort trajectories frame-wise")
-    shape = data.shape
-    result = np.empty(shape[1])
-    frames = np.unique(data[:, 1]).astype(int)
-    for frame in frames:
-        data_fr = data_at_frame(data, frame)
-        result = np.vstack((result, data_fr))
-
-    return result
-
-
 def write_trajectories(result, header, File):
     """write the resulting trajecties in a file
 
@@ -278,17 +259,17 @@ def main():
                         sep=r"\s+",
                         dtype=np.float64,
                         comment="#").values
+        data = data[data[:, 1].argsort()]  # sort by frame
         data = extend_data(data, unit)
         geometry_file = File.parent.joinpath("geometry.xml")
         write_geometry(data, unit, geometry_file)
-        result = sort_data_framewise(data)
         agents = np.unique(data[:, 0]).astype(int)
         for agent in agents:
             ped = data[data[:, 0] == agent]
             speed = Speed(ped[:, 2:4], df, fps)
-            result[result[:, 0] == agent, -1] = speed/v0*255
+            data[data[:, 0] == agent, -1] = speed/v0*255
 
-        write_trajectories(result, header, File)
+        write_trajectories(data, header, File)
 
 
 if __name__ == '__main__':
