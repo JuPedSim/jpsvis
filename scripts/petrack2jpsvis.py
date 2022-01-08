@@ -17,6 +17,7 @@ parser = argparse.ArgumentParser(
 parser.add_argument("-f", "--file", required=True, type=str,
                     help='Petrack trajectory file')
 parser.add_argument("-d", "--df", default="10", dest='df',
+                    type=int,
                     help='''number of frames forward
                     to calculate the speed (default: 10)''')
 args = parser.parse_args()
@@ -178,7 +179,86 @@ def data_at_frame(data, frame) -> np.array:
     return data[data[:, 1] == frame]
 
 
-if __name__ == '__main__':
+def extend_data(data, _unit) -> np.array:
+    """Append some new columns to the trajectories
+    for visualisation purposes. These are:
+    - height: if missing in the trajectory file
+    - A: Semi-axis of the agent
+    - B: Semi-axis of the agent.
+    - ANGLE: angle of the agent.
+    - COLOR: Color of the agent.
+    :param data: input trajectories
+    :type data: np.array
+    :returns: np.array
+
+    """
+    rows, cols = data.shape
+    H = 1.5 * np.ones((rows, 1)) * _unit  # hight 150cm
+    A = 0.3 * np.ones((rows, 1)) * _unit  # circle with radius 30cm
+    B = 0.3 * np.ones((rows, 1)) * _unit  # circle with radius 30cm
+    ANGLE = np.zeros((rows, 1))  # does not matter since circles
+    COLOR = 100 * np.ones((rows, 1))  # will be set wrt. speed
+    if cols == 4:  # some trajectories do not have Z
+        data = np.hstack((data, H, A, B, ANGLE, COLOR))
+    else:
+        data = np.hstack((data, A, B, ANGLE, COLOR))
+
+    return data
+
+
+def sort_data_framewise(data) -> np.array:
+    """sort trajectories framewise
+
+    :param data: input trajectories
+    :type data: np.array
+    :returns: np.array
+
+    """
+    print("--> sort trajectories frame-wise")
+    shape = data.shape
+    result = np.empty(shape[1])
+    frames = np.unique(data[:, 1]).astype(int)
+    for frame in frames:
+        data_fr = data_at_frame(data, frame)
+        result = np.vstack((result, data_fr))
+
+    return result
+
+
+def write_trajectories(result, header, File):
+    """write the resulting trajecties in a file
+
+    :param result: trajectories
+    :type result: np.array
+    :param header: Header
+    :type header: str
+    :param File: input file
+    :type File: Path
+    :returns: the name of the file is jps_Filename
+
+    """
+    filename = File.parent.joinpath("jps_" + File.name)
+    print(f"--> write results in {filename}")
+    np.savetxt(filename, result[1:, :],
+               # skip the first line (initialization)
+               fmt=["%d", "%d",  # id frame
+                    "%1.2f", "%1.2f", "%1.2f",  # x, y, z
+                    "%1.2f", "%1.2f",  # A, B
+                    "%1.2f",  # Angle
+                    "%d"],  # Color
+               header=header,
+               comments='#',
+               delimiter='\t')
+
+
+def write_debug_msg(File, fps, df, unit_s):
+    print(f"file: {File}, Size: {File.stat().st_size/1024/1024:,.2f} MB")
+    print(f"fps: {fps}")
+    print(f"df: {df}")
+    print(f"unit: {unit_s}")
+
+
+def main():
     File = Path(args.file)
     if not File.exists():
         sys.exit(f'file {File} does not exist!')
@@ -191,51 +271,21 @@ if __name__ == '__main__':
     with open(File, encoding="utf8") as finput:
         header, fps, unit_s = extract_info(finput)
         unit = 100 if unit_s == "cm" else 1
-        print(f"file: {File}")
-        print(header)
-        print(f"fps: {fps}")
-        print(f"df: {df}")
-        print(f"unit: {unit_s}")
+        v0 = 1.5 * unit  # max. speed (assumed) [unit/s]
+        write_debug_msg(File, fps, df, unit_s)
         data = np.loadtxt(File)
-        
-        rows, cols = data.shape
-        H = 1.5 * np.ones((rows, 1)) * unit  # hight 150cm
-        A = 0.3 * np.ones((rows, 1)) * unit  # circle with radius 30cm
-        B = 0.3 * np.ones((rows, 1)) * unit  # circle with radius 30cm
-        ANGLE = np.zeros((rows, 1))  # does not matter since circles
-        COLOR = 100 * np.ones((rows, 1))  # will be set wrt. speed
-        if cols == 4:  # some trajectories do not have Z
-            data = np.hstack((data, H, A, B, ANGLE, COLOR))
-        else:
-            data = np.hstack((data, A, B, ANGLE, COLOR))
-
+        data = extend_data(data, unit)
         geometry_file = File.parent.joinpath("geometry.xml")
         write_geometry(data, unit, geometry_file)
-        shape = data.shape
-        result = np.empty(shape[1])
-        frames = np.unique(data[:, 1]).astype(int)
-        ids = np.unique(data[:, 0]).astype(int)
-        v0 = 1.5 * unit  # max. speed (assumed) [unit/s]
-        print("--> sort trajectories frame-wise")
-        for frame in frames:
-            data_fr = data_at_frame(data, frame)
-            result = np.vstack((result, data_fr))
-
-        print("--> calculate speeds")
-        for i in ids:
-            ped = data[data[:, 0] == i]
+        result = sort_data_framewise(data)
+        agents = np.unique(data[:, 0]).astype(int)
+        for agent in agents:
+            ped = data[data[:, 0] == agent]
             speed = Speed(ped[:, 2:4], df, fps)
-            result[result[:, 0] == i, -1] = speed/v0*255
+            result[result[:, 0] == agent, -1] = speed/v0*255
 
-        filename = File.parent.joinpath("jps_" + File.name)
-        print(f"--> write results in {filename}")
-        np.savetxt(filename, result[1:, :],
-                   # skip the first line (initialization)
-                   fmt=["%d", "%d",  # id frame
-                        "%1.2f", "%1.2f", "%1.2f",  # x, y, z
-                        "%1.2f", "%1.2f",  # A, B
-                        "%1.2f",  # Angle
-                        "%d"],  # Color
-                   header=header,
-                   comments='#',
-                   delimiter='\t')
+        write_trajectories(result, header, File)
+
+
+if __name__ == '__main__':
+    main()
