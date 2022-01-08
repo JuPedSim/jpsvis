@@ -19,10 +19,7 @@ parser.add_argument("-f", "--file", required=True, type=str,
                     help='Petrack trajectory file')
 parser.add_argument("-d", "--df", default="10", dest='df',
                     help='''number of frames forward
-                    to calculate the speed''')
-parser.add_argument("--cm", dest='convert', action='store_false',
-                    help='keep trajectories in cm')
-parser.set_defaults(convert=True)
+                    to calculate the speed (default: 10)''')
 args = parser.parse_args()
 
 
@@ -30,17 +27,36 @@ def extract_info(FileD) -> Tuple[str, int]:
     """extract first 3 lines from experiment file.
     Then append a description, a geometry and finally the
     jpscore header.
+    # ---------------------------------------
+    Assumptions being made:
+    1. Header contains a line with PeTrack
+    2. Header contains a line with "x/unit.
+    # ---------------------------------------
     :param FileD: file
-    :returns: header and fps
+    :returns: header,
+              fps (default: 16)
+              and unit (default: cm)
     """
     header = f"description: trajectories converted by {sys.argv[0]}\n"
     fps = 16
+    unit = "cm"
+    hasHeader = False
     for line in FileD:
-        header += line.split("#")[-1].lstrip().split("fps")[0]
-        if "framerate" in line:
-            header += "\ngeometry: geometry.xml\n"
-            fps = line.split("fps")[0].split()[-1]
-            break
+        if "PeTrack" in line:
+            hasHeader = True
+            print("has ", hasHeader)
+        if hasHeader:
+            header += line.split("#")[-1].lstrip().split("fps")[0]
+            if "x/" in line:
+                print(line)
+                unit = line.split("x/")[-1].split()[0]
+                print("--> ", unit)
+            if "framerate" in line:
+                header += "\ngeometry: geometry.xml\n"
+                fps = line.split("fps")[0].split()[-1]
+
+            if not line.startswith("#"):  # now the trajectories start
+                break
 
     header += "ID\tFR\tX\tY\tZ\tA\tB\tANGLE\tCOLOR"
     try:
@@ -48,7 +64,7 @@ def extract_info(FileD) -> Tuple[str, int]:
     except ValueError:
         sys.exit("can not extract fps")
 
-    return (header, fps)
+    return (header, fps, unit)
 
 
 def Speed(traj, df, fps) -> np.array:
@@ -84,18 +100,18 @@ def Speed(traj, df, fps) -> np.array:
     return Speed
 
 
-def write_geometry(data, cm=100):
+def write_geometry(data, Unit):
     """Creates a bounding box around the trajectories
     :param data: 2D-array
-    :param cm: trajectories will be devided by this variable
-               and hence may be converted to m
+    :param Unit: Unit of the trajectories (cm or m)
     :returns: geometry file names geometry.xml
     """
-    Delta = 100  # 1 m around to better contain the trajectories
-    xmin = (np.min(data[:, 2]) - Delta)/cm
-    xmax = (np.max(data[:, 2]) + Delta)/cm
-    ymin = (np.min(data[:, 3]) - Delta)/cm
-    ymax = (np.max(data[:, 3]) + Delta)/cm
+    Delta = 100 if Unit == "cm" else 1
+    # 1 m around to better contain the trajectories
+    xmin = (np.min(data[:, 2]) - Delta)
+    xmax = (np.max(data[:, 2]) + Delta)
+    ymin = (np.min(data[:, 3]) - Delta)
+    ymax = (np.max(data[:, 3]) + Delta)
     data = ET.Element('geometry')
     data.set('version', '0.8')
     data.set('caption', 'experiment')
@@ -164,36 +180,35 @@ if __name__ == '__main__':
     if not exists(File):
         sys.exit(f'file {File} does not exist!')
 
-    cm = 100 if args.convert else 1
     try:
         df = int(args.df)
     except ValueError:
         sys.exit(f"can not convert input df {args.df} to int")
 
     with open(File, encoding="utf8") as f:
-        header, fps = extract_info(f)
+        header, fps, unit_s = extract_info(f)
+        unit = 100 if unit_s == "cm" else 1
         print(f"file: {File}")
         print(header)
         print(f"fps: {fps}")
         print(f"df: {df}")
+        print(f"unit: {unit_s}")
         data = np.loadtxt(File)
         rows, cols = data.shape
-        A = 30 * np.ones((rows, 1))  # circle with radius 20cm
-        B = 30 * np.ones((rows, 1))  # circle with radius 20cm
+        A = 0.3 * np.ones((rows, 1)) * unit  # circle with radius 30cm
+        B = 0.3 * np.ones((rows, 1)) * unit  # circle with radius 30cm
         ANGLE = np.zeros((rows, 1))  # does not matter since circles
         COLOR = 100 * np.ones((rows, 1))  # will be set wrt. speed
         data = np.hstack((data, A, B, ANGLE, COLOR))
-        write_geometry(data, cm)
+        write_geometry(data, unit)
         shape = data.shape
         result = np.empty(shape[1])
-        cm2m = np.ones(shape[1])
-        cm2m[2:-2] *= cm  # exclude id, fr, angle and color from conversion
         frames = np.unique(data[:, 1]).astype(int)
         ids = np.unique(data[:, 0]).astype(int)
-        v0 = 150  # max. speed (assumed) [cm/s]
+        v0 = 1.5 * unit  # max. speed (assumed) [unit/s]
         print("--> sort trajectories frame-wise")
         for frame in frames:
-            data_fr = data_at_frame(data, frame)/cm2m
+            data_fr = data_at_frame(data, frame)
             result = np.vstack((result, data_fr))
 
         print("--> calculate speeds")
