@@ -2,8 +2,13 @@ import sys
 from pathlib import Path
 import argparse
 import xml.etree.ElementTree as ET
+import logging as log
 import numpy as np
 from pandas import read_csv
+
+
+log.basicConfig(level=log.DEBUG,
+                format='%(levelname)s : %(message)s')
 
 parser = argparse.ArgumentParser(
     description='''Modify trajectory-files to be
@@ -45,6 +50,8 @@ def extract_info(FileD):
     fps = 16
     unit = "cm"
     hasPetrackHeader = False
+    hasFPS = False
+    hasUnit = False
     for line in FileD:
         if "PeTrack" in line:
             hasPetrackHeader = True
@@ -56,18 +63,31 @@ def extract_info(FileD):
             header += line
             if "x/" in line:
                 unit = line.split("x/")[-1].split()[0]
+                hasUnit = True
 
             if "framerate" in line:
                 fps = line.split("fps")[0].split()[-1]
-
+                hasFPS = True
     # jpsvis part
     header += f"\nframerate: {fps}"
     header += "\ngeometry: geometry.xml\n"
     header += "ID\tFR\tX\tY\tZ\tA\tB\tANGLE\tCOLOR"
+    if not hasPetrackHeader:
+        log.warning("Trajectory file does not have header.")
+
+    if not hasFPS:
+        log.warning("did not find fps in header. Assuming fps=16")
+
+    if not hasUnit:
+        log.warning("did not find unit in header. Assuming unit=cm")
+
     try:
         fps = int(fps)
     except ValueError:
-        sys.exit("can not extract fps")
+        log.error(
+            f"fps <{fps}> in header can not be converted to int")
+
+        sys.exit()
 
     return (header, fps, unit)
 
@@ -98,11 +118,12 @@ def Speed_Angle(traj, df, fps):
     └────────►   *       *
                    *       *
     """
-    print(traj.shape)
     Size = traj.shape[0]
     Speed = np.ones(Size)
     Angle = np.zeros(Size)
     if Size < df:
+        log.warning(
+            f"found trajectory with length={Size} < df={df}")
         return (Speed, Angle)
 
     Delta = traj[df:, :] - traj[:Size-df, :]
@@ -117,7 +138,7 @@ def Speed_Angle(traj, df, fps):
     Speed[: Size-df] = s / df * fps
     Speed[Size-df:] = Speed[Size-df-1]
     Angle[Size-df:] = Angle[Size-df-1]
-    return Speed, Angle
+    return (Speed, Angle)
 
 
 def write_geometry(data, Unit, geo_file):
@@ -233,7 +254,9 @@ def write_trajectories(result, header, File):
 
     """
     filename = File.parent.joinpath("jps_" + File.name)
-    print(f"--> write results in {filename}")
+    size = Path(filename).stat().st_size/1024/1024
+    log.info(
+        f"output: {filename} ({size:,.2f} MB)")
     np.savetxt(filename, result[1:, :],
                # skip the first line (initialization)
                fmt=["%d", "%d",  # id frame
@@ -247,16 +270,17 @@ def write_trajectories(result, header, File):
 
 
 def write_debug_msg(File, fps, df, unit_s):
-    print(f"file: {File}, Size: {File.stat().st_size/1024/1024:,.2f} MB")
-    print(f"fps: {fps}")
-    print(f"df: {df}")
-    print(f"unit: {unit_s}")
+    log.info(f"input : {File} ({File.stat().st_size/1024/1024:,.2f} MB)")
+    log.info(f"fps   : {fps}")
+    log.info(f"df    : {df}")
+    log.info(f"unit  : {unit_s}")
 
 
 def main():
     File = Path(args.file)
     if not File.exists():
-        sys.exit(f'file {File} does not exist!')
+        log.error(f'file {File} does not exist!')
+        sys.exit()
 
     df = args.df
     with open(File, encoding="utf8") as finput:
@@ -268,11 +292,14 @@ def main():
                         sep=r"\s+",
                         dtype=np.float64,
                         comment="#").values
+        nframes = np.unique(data[:, 1]).size
         data = data[data[:, 1].argsort()]  # sort by frame
         data = extend_data(data, unit)
         geometry_file = File.parent.joinpath("geometry.xml")
         write_geometry(data, unit_s, geometry_file)
         agents = np.unique(data[:, 0]).astype(int)
+        log.info(
+            f"Got: {agents.size} pedestrians and {nframes} frames.")
         for agent in agents:
             ped = data[data[:, 0] == agent]
             speed, angle = Speed_Angle(ped[:, 2:4], df, fps)
