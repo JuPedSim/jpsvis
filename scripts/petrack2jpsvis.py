@@ -1,7 +1,6 @@
 import sys
 from pathlib import Path
 import argparse
-from typing import Tuple
 import xml.etree.ElementTree as ET
 import numpy as np
 from pandas import read_csv
@@ -10,9 +9,11 @@ parser = argparse.ArgumentParser(
     description='''Modify trajectory-files to be
     visualized with jpsvis.
     New columns are added (A, B, ANGLE, COLOR)
-    A and B are constants. ANGLE is zero (so agents are circles)
-    COLOR is calculated based on the speed assuming
+    A and B are constants.
+    COLOR and ANGLE are calculated based on the speed assuming
     a maximal speed of 1.5m/s.
+    The name of the output file ist the name of the input file
+    prefix with jps_
     '''
 )
 parser.add_argument("-f", "--file", required=True, type=str,
@@ -24,8 +25,9 @@ parser.add_argument("-d", "--df", default="10", dest='df',
 args = parser.parse_args()
 
 
-def extract_info(FileD) -> Tuple[str, int]:
-    """extract first 3 lines from experiment file.
+def extract_info(FileD):
+    """Extract first 3 lines from experiment file.
+
     Then append a description, a geometry and finally the
     jpscore header.
     # ---------------------------------------
@@ -37,6 +39,7 @@ def extract_info(FileD) -> Tuple[str, int]:
     :returns: header,
               fps (default: 16)
               and unit (default: cm)
+
     """
     header = f"description: trajectories converted by {sys.argv[0]}\n"
     fps = 16
@@ -69,8 +72,9 @@ def extract_info(FileD) -> Tuple[str, int]:
     return (header, fps, unit)
 
 
-def Speed_Angle(traj, df, fps) -> Tuple[np.array, np.array]:
+def Speed_Angle(traj, df, fps):
     """Calculates the speed and the angle from the trajectory points.
+
     Using the forward formula
     speed(f) = (X(f+df) - X(f))/df [1]
     note: The last df frames are not calculated using [1].
@@ -94,10 +98,13 @@ def Speed_Angle(traj, df, fps) -> Tuple[np.array, np.array]:
     └────────►   *       *
                    *       *
     """
+    print(traj.shape)
     Size = traj.shape[0]
-    assert Size >= df, f"Trajectory too small. Size = {Size}, df= {df}"
     Speed = np.ones(Size)
-    Angle = np.ones(Size)
+    Angle = np.zeros(Size)
+    if Size < df:
+        return (Speed, Angle)
+
     Delta = traj[df:, :] - traj[:Size-df, :]
     Delta_X = Delta[:, 0]
     Delta_Y = Delta[:, 1]
@@ -182,9 +189,10 @@ def write_geometry(data, Unit, geo_file):
         f.write(b_xml)
 
 
-def extend_data(data, _unit) -> np.array:
-    """Append some new columns to the trajectories
-    for visualisation purposes. These are:
+def extend_data(data, _unit):
+    """Append some columns to the trajectories
+
+    For visualisation purposes. These columns are:
     - height: if missing in the trajectory file
     - A: Semi-axis of the agent
     - B: Semi-axis of the agent.
@@ -194,12 +202,15 @@ def extend_data(data, _unit) -> np.array:
     :type data: np.array
     :returns: np.array
 
+    :param data:
+    :param _unit:
+
     """
     rows, cols = data.shape
-    H = 1.5 * np.ones((rows, 1)) * _unit  # hight 150cm
-    A = 0.3 * np.ones((rows, 1)) * _unit  # circle with radius 30cm
-    B = 0.2 * np.ones((rows, 1)) * _unit  # circle with radius 30cm
-    ANGLE = np.zeros((rows, 1))  # does not matter since circles
+    H = 1.5 * np.ones((rows, 1)) * _unit  # height
+    A = 0.3 * np.ones((rows, 1)) * _unit  # semi-axis of ellipse
+    B = 0.2 * np.ones((rows, 1)) * _unit  # semi-axis of ellipse
+    ANGLE = np.zeros((rows, 1))  # angle in degree
     COLOR = 100 * np.ones((rows, 1))  # will be set wrt. speed
     if cols == 4:  # some trajectories do not have Z
         data = np.hstack((data, H, A, B, ANGLE, COLOR))
@@ -247,11 +258,7 @@ def main():
     if not File.exists():
         sys.exit(f'file {File} does not exist!')
 
-    try:
-        df = int(args.df)
-    except ValueError:
-        sys.exit(f"can not convert input df {args.df} to int")
-
+    df = args.df
     with open(File, encoding="utf8") as finput:
         header, fps, unit_s = extract_info(finput)
         unit = 100 if unit_s == "cm" else 1
