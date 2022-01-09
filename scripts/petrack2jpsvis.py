@@ -29,7 +29,6 @@ parser.add_argument("-d", "--df", default="10", dest='df',
                     to calculate the speed (default: 10)''')
 args = parser.parse_args()
 
-
 def extract_info(FileD):
     """Extract first 3 lines from experiment file.
 
@@ -39,6 +38,9 @@ def extract_info(FileD):
     Assumptions being made:
     1. Header contains a line with PeTrack
     2. Header contains a line with "x/unit.
+    3. or Header starts with
+    # <number> <frame> <x> [in m] <y> [in m] <z> [in m]
+    # <rot> [in rad] <id> <flag>
     # ---------------------------------------
     :param FileD: file
     :returns: header,
@@ -53,7 +55,7 @@ def extract_info(FileD):
     hasFPS = False
     hasUnit = False
     for line in FileD:
-        if "PeTrack" in line:
+        if "PeTrack" in line or "<number>" in line:
             hasPetrackHeader = True
 
         if hasPetrackHeader:
@@ -63,6 +65,11 @@ def extract_info(FileD):
             header += line
             if "x/" in line:
                 unit = line.split("x/")[-1].split()[0]
+                hasUnit = True
+
+            if "<x>" in line:
+                # <number> <frame> <x> [in m] <y> [in m] <z> [in m]
+                unit = line.split("<x>")[-1].split()[1].strip("]")
                 hasUnit = True
 
             if "framerate" in line:
@@ -254,9 +261,6 @@ def write_trajectories(result, header, File):
 
     """
     filename = File.parent.joinpath("jps_" + File.name)
-    size = Path(filename).stat().st_size/1024/1024
-    log.info(
-        f"output: {filename} ({size:,.2f} MB)")
     np.savetxt(filename, result[1:, :],
                # skip the first line (initialization)
                fmt=["%d", "%d",  # id frame
@@ -267,6 +271,9 @@ def write_trajectories(result, header, File):
                header=header,
                comments='#',
                delimiter='\t')
+    size = Path(filename).stat().st_size/1024/1024
+    log.info(
+        f"output: {filename} ({size:,.2f} MB)")
 
 
 def write_debug_msg(File, fps, df, unit_s):
@@ -292,14 +299,20 @@ def main():
                         sep=r"\s+",
                         dtype=np.float64,
                         comment="#").values
+        Columns = data.shape[1]
+        log.info(f"Got {Columns} columns")
         nframes = np.unique(data[:, 1]).size
+        if Columns > 5:
+            # keep the following cols: id fr x y [z]
+            data = data[:, :5]
+
         data = data[data[:, 1].argsort()]  # sort by frame
         data = extend_data(data, unit)
         geometry_file = File.parent.joinpath("geometry.xml")
         write_geometry(data, unit_s, geometry_file)
         agents = np.unique(data[:, 0]).astype(int)
         log.info(
-            f"Got: {agents.size} pedestrians and {nframes} frames.")
+            f"Got {agents.size} pedestrians and {nframes} frames.")
         for agent in agents:
             ped = data[data[:, 0] == agent]
             speed, angle = Speed_Angle(ped[:, 2:4], df, fps)
