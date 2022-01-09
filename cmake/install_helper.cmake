@@ -15,7 +15,6 @@ macro(write_package_information)
     set(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_SOURCE_DIR}/README.md")
     set(CPACK_PACKAGE_HOMEPAGE_URL "http://jupedsim.org")
     set(CPACK_RESOURCE_FILE_README "${CMAKE_SOURCE_DIR}/README.md")
-    set(CPACK_PACKAGE_EXECUTABLES "jpsvis")
     set(CPACK_MONOLITHIC_INSTALL TRUE)
     set(CPACK_CREATE_DESKTOP_LINKS jpsvis)
     set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
@@ -70,6 +69,7 @@ macro(write_package_information_macos)
     SET(MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}")
     SET(MACOSX_GUI_COPYRIGHT "Copyright (c) 2015-2021 Forschungszentrum Juelich. All rights reserved.")
     SET(MACOSX_BUNDLE_GUI_IDENTIFIER "www.jupedsim.org")
+    set(CPACK_PACKAGE_EXECUTABLES "jpsvis;JPSVis")
 endmacro()
 
 macro(write_package_content_macos)
@@ -108,49 +108,74 @@ macro(write_package_content_macos)
 
 endmacro()
 
-###############################################################################
-# WINDOWS
-###############################################################################
-function(cpack_write_windows_package_information)
-    set(CPACK_GENERATOR "NSIS" CACHE STRING "Generator used by CPack")
+################################################################################
+# Windows Installer
+################################################################################
+macro(write_package_information_win)
+  set(CPACK_GENERATOR "NSIS" CACHE STRING "Generator used by CPack")
+  set(CPACK_NSIS_HELP_LINK "www.jupedsim.org")
+  set(CPACK_NSIS_MUI_ICON "${CMAKE_SOURCE_DIR}/forms/jpsvis.ico")
+  set(CPACK_NSIS_DISPLAY_NAME "JPSvis")
+  set(CPACK_NSIS_PACKAGE_NAME "JPSvis")
+  set(CPACK_NSIS_INSTALLED_ICON_NAME "${CMAKE_SOURCE_DIR}/forms/jpsvis.ico")
+  set(CPACK_NSIS_URL_INFO_ABOUT ${CPACK_NSIS_HELP_LINK})
+  set(CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL ON)
+  set(CPACK_NSIS_EXTRA_INSTALL_COMMANDS
+	  "CreateShortCut '$DESKTOP\\\\JPSvis.lnk' '$INSTDIR\\\\bin\\\\jpsvis.exe'"
+  )
+  set(CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS
+	  "Delete '$DESKTOP\\\\JPSvis.lnk'"
+  )
+endmacro()
 
-    set(CPACK_NSIS_MUI_ICON "${CMAKE_SOURCE_DIR}/forms/icons/jpsvis.ico")
-    set(CPACK_NSIS_MODIFY_PATH ON)
-    set(CPACK_NSIS_DISPLAY_NAME "JPSvis")
-    set(CPACK_NSIS_PACKAGE_NAME "JPSvis")
-    set(CPACK_NSIS_INSTALLED_ICON_NAME "${CMAKE_SOURCE_DIR}/forms/icons/jpsvis.ico")
-    set(CPACK_NSIS_HELP_LINK "www.jupedsim.org")
-    set(CPACK_NSIS_URL_INFO_ABOUT ${CPACK_NSIS_HELP_LINK})
-    set(CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL ON)
-endfunction()
-
-
-function(cpack_create_windows_package)
+macro(write_package_content_win)
     include(InstallRequiredSystemLibraries)
     include(GNUInstallDirs)
+    install(TARGETS jpsvis)
 
-    install(TARGETS petrack)
+    install(CODE [[
+        file(GET_RUNTIME_DEPENDENCIES
+            RESOLVED_DEPENDENCIES_VAR RES
+            UNRESOLVED_DEPENDENCIES_VAR UNRES
+            CONFLICTING_DEPENDENCIES_PREFIX CONFLICTING_DEPENDENCIES
+            EXECUTABLES $<TARGET_FILE:jpsvis>
+            LIBRARIES $<TARGET_FILE:vis>
+            PRE_EXCLUDE_REGEXES api-ms-win-.* ext-ms-.* kernel32.dll qt5.*.dll
+            POST_EXCLUDE_REGEXES .*system32.*.dll qt5.*.dll
+            POST_INCLUDE_REGEXES .*system32.*opengl.*dll
+        )
 
-    # install Qwt and OpenCV
-    install(CODE "
-        include(BundleUtilities)
-        fixup_bundle(\"\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/jpsvis${CMAKE_EXECUTABLE_SUFFIX}\"  \"\" \"\")
-    ")
+        foreach(DEP ${RES})
+            file(INSTALL
+              DESTINATION "${CMAKE_INSTALL_PREFIX}/bin"
+              TYPE SHARED_LIBRARY
+              FOLLOW_SYMLINK_CHAIN
+              FILES "${DEP}"
+            )
+        endforeach()
+        list(LENGTH _u_deps _u_length)
+        if("${_u_length}" GREATER 0)
+        message(WARNING "Unresolved dependencies detected!")
+        endif()
+    ]])
 
     get_target_property(mocExe Qt5::moc IMPORTED_LOCATION)
     get_filename_component(qtBinDir "${mocExe}" DIRECTORY)
-
     find_program(DEPLOYQT_EXECUTABLE windeployqt PATHS "${qtBinDir}" NO_DEFAULT_PATH)
-endfunction()
+    set(DEPLOY_OPTIONS [["${CMAKE_INSTALL_PREFIX}/bin/jpsvis.exe" -verbose=0]])
+    configure_file(${CMAKE_SOURCE_DIR}/cmake/deployapp.cmake.in deployapp.cmake @ONLY)
+    install(SCRIPT ${CMAKE_CURRENT_BINARY_DIR}/deployapp.cmake)
+endmacro()
 
+################################################################################
+# Deb package
+################################################################################
+macro(write_package_information_unix)
+    message(STATUS "Package generation - Deb")
+    message(STATUS "not yet implemented")
+endmacro()
 
-###############################################################################
-# UNIX
-###############################################################################
-function (write_package_information_unix)
-    message(STATUS "Package generation - Unix - not yet implemented")
-endfunction()
-
-function (write_package_content_unix)
-    message(STATUS "Cpack write configs - Unix - not yet implemented")
-endfunction()
+macro(write_package_content_unix)
+    message(STATUS "Package generation - Deb")
+    message(STATUS "not yet implemented")
+endmacro()
