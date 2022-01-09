@@ -23,11 +23,16 @@ parser = argparse.ArgumentParser(
 )
 parser.add_argument("-f", "--file", required=True, type=str,
                     help='Petrack trajectory file')
+parser.add_argument("-u", "--unit", type=str,
+                    choices=["m", "cm"],
+                    help='Specify unit')
+
 parser.add_argument("-d", "--df", default="10", dest='df',
                     type=int,
                     help='''number of frames forward
                     to calculate the speed (default: 10)''')
 args = parser.parse_args()
+
 
 def extract_info(FileD):
     """Extract first 3 lines from experiment file.
@@ -54,6 +59,7 @@ def extract_info(FileD):
     hasPetrackHeader = False
     hasFPS = False
     hasUnit = False
+
     for line in FileD:
         if "PeTrack" in line or "<number>" in line:
             hasPetrackHeader = True
@@ -85,8 +91,17 @@ def extract_info(FileD):
     if not hasFPS:
         log.warning("did not find fps in header. Assuming fps=16")
 
-    if not hasUnit:
-        log.warning("did not find unit in header. Assuming unit=cm")
+    if not hasUnit:  # did not find unit in header
+        if args.unit is not None:
+            log.info(f"Unit passed: {args.unit}")
+            unit = args.unit
+        else:
+            log.warning("did not find unit in header. Assuming unit=cm")
+    else:  # found unit in header
+        if args.unit is not None and args.unit != unit:
+            log.warning(f"""Unit passed: {args.unit}
+            but unit detected in header {unit}.
+            Using: {unit}""")
 
     try:
         fps = int(fps)
@@ -260,7 +275,7 @@ def write_trajectories(result, header, File):
     :returns: the name of the file is jps_Filename
 
     """
-    filename = File.parent.joinpath("jps_" + File.name)
+    filename = File.parent.joinpath("jps_" + File.stem + ".txt")
     np.savetxt(filename, result[1:, :],
                # skip the first line (initialization)
                fmt=["%d", "%d",  # id frame
