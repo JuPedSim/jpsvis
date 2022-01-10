@@ -10,44 +10,58 @@ from pandas import read_csv
 log.basicConfig(level=log.DEBUG,
                 format='%(levelname)s : %(message)s')
 
+
+def check_positive_int(value):
+    ivalue = int(value)
+    if ivalue <= 0:
+        raise argparse.ArgumentTypeError(
+            f"{value} is an invalid value. Positive value required.")
+    return ivalue
+
+
 parser = argparse.ArgumentParser(
     description='''Modify trajectory-files to be
     visualized with jpsvis.
-    New columns are added (A, B, ANGLE, COLOR)
-    A and B are constants.
-    COLOR and ANGLE are calculated based on the speed assuming
-    a maximal speed of 1.5m/s.
-    The name of the output file ist the name of the input file
-    prefix with jps_
+    New columns 'A', 'B' representing ellipses major axis (Agent Ellipsis),
+    'ANGLE' representing the Agent's orientation and
+    'COLOR' representing the Agent's speed, are added.
+    'A' and 'B' are constants.
+    'COLOR' and 'ANGLE' are calculated based on the speed assuming
+    a maximal speed of v0=1.5m/s (color = v/v0*255).
+    The name of the output file is the name of the input file
+    prefixed with 'jps_' and ends with '.txt'
     '''
 )
-parser.add_argument("-f", "--file", required=True, type=str,
+parser.add_argument('file', type=str,
                     help='Petrack trajectory file')
 parser.add_argument("-u", "--unit", type=str,
                     choices=["m", "cm"],
-                    help='Specify unit')
+                    help="""Specify the length unit used to represent agent
+                    positions in the input PedTrack file.
+                    Note: This argument information  maybe important when
+                    passing PeTrack-files without header.""")
 
 parser.add_argument("-d", "--df", default="10", dest='df',
-                    type=int,
+                    type=check_positive_int,
                     help='''number of frames forward
                     to calculate the speed (default: 10)''')
 args = parser.parse_args()
 
 
-def extract_info(FileD):
-    """Extract first 3 lines from experiment file.
+def extract_info(file_obj):
+    """Extract 'unit' and 'fps' from Petrack file.
 
     Then append a description, a geometry and finally the
-    jpscore header.
+    jpscore header with the fps information.
+    Keep the original header, if existing.
     # ---------------------------------------
     Assumptions being made:
-    1. Header contains a line with PeTrack
-    2. Header contains a line with "x/unit.
-    3. or Header starts with
-    # <number> <frame> <x> [in m] <y> [in m] <z> [in m]
-    # <rot> [in rad] <id> <flag>
+    1. Header contains a line with the words 'PeTrack' or '<number>'
+    2. Header contains a line with "x/unit or <x> [in unit]
+    3. Header contains a line with fps information as follows:
+       # framerate: N fps
     # ---------------------------------------
-    :param FileD: file
+    :param file_obj: file object
     :returns: header,
               fps (default: 16)
               and unit (default: cm)
@@ -56,42 +70,41 @@ def extract_info(FileD):
     header = f"description: trajectories converted by {sys.argv[0]}\n"
     fps = 16
     unit = "cm"
-    hasPetrackHeader = False
-    hasFPS = False
-    hasUnit = False
-
-    for line in FileD:
+    has_petrack_header = False
+    has_fps = False
+    has_unit = False
+    for line in file_obj:
         if "PeTrack" in line or "<number>" in line:
-            hasPetrackHeader = True
+            has_petrack_header = True
 
-        if hasPetrackHeader:
+        if has_petrack_header:
             if not line.startswith("#"):  # now the trajectories start
                 break
 
             header += line
             if "x/" in line:
                 unit = line.split("x/")[-1].split()[0]
-                hasUnit = True
+                has_unit = True
 
             if "<x>" in line:
                 # <number> <frame> <x> [in m] <y> [in m] <z> [in m]
                 unit = line.split("<x>")[-1].split()[1].strip("]")
-                hasUnit = True
+                has_unit = True
 
             if "framerate" in line:
                 fps = line.split("fps")[0].split()[-1]
-                hasFPS = True
+                has_fps = True
     # jpsvis part
     header += f"\nframerate: {fps}"
     header += "\ngeometry: geometry.xml\n"
     header += "ID\tFR\tX\tY\tZ\tA\tB\tANGLE\tCOLOR"
-    if not hasPetrackHeader:
+    if not has_petrack_header:
         log.warning("Trajectory file does not have header.")
 
-    if not hasFPS:
+    if not has_fps:
         log.warning("did not find fps in header. Assuming fps=16")
 
-    if not hasUnit:  # did not find unit in header
+    if not has_unit:  # did not find unit in header
         if args.unit is not None:
             log.info(f"Unit passed: {args.unit}")
             unit = args.unit
@@ -114,7 +127,7 @@ def extract_info(FileD):
     return (header, fps, unit)
 
 
-def Speed_Angle(traj, df, fps):
+def speed_angle(traj, df, fps):
     """Calculates the speed and the angle from the trajectory points.
 
     Using the forward formula
@@ -145,7 +158,8 @@ def Speed_Angle(traj, df, fps):
     Angle = np.zeros(Size)
     if Size < df:
         log.warning(
-            f"found trajectory with length={Size} < df={df}")
+            f"""The number of frames used to calculate the speed {df}
+            exceeds the total amount of frames ({Size}) in this trajectory.""")
         return (Speed, Angle)
 
     Delta = traj[df:, :] - traj[:Size-df, :]
@@ -263,19 +277,19 @@ def extend_data(data, _unit):
     return data
 
 
-def write_trajectories(result, header, File):
-    """write the resulting trajecties in a file
+def write_trajectories(result, header, file_path):
+    """write the resulting trajectories in a file
 
     :param result: trajectories
     :type result: np.array
     :param header: Header
     :type header: str
-    :param File: input file
-    :type File: Path
+    :param file_path: input file
+    :type file_path: Path
     :returns: the name of the file is jps_Filename
 
     """
-    filename = File.parent.joinpath("jps_" + File.stem + ".txt")
+    filename = file_path.parent.joinpath("jps_" + file_path.stem + ".txt")
     np.savetxt(filename, result[1:, :],
                # skip the first line (initialization)
                fmt=["%d", "%d",  # id frame
@@ -286,54 +300,57 @@ def write_trajectories(result, header, File):
                header=header,
                comments='#',
                delimiter='\t')
-    size = Path(filename).stat().st_size/1024/1024
+    size_mb = Path(filename).stat().st_size/1024/1024
     log.info(
-        f"output: {filename} ({size:,.2f} MB)")
+        f"output: {filename} ({size_mb:,.2f} MB)")
 
 
-def write_debug_msg(File, fps, df, unit_s):
-    log.info(f"input : {File} ({File.stat().st_size/1024/1024:,.2f} MB)")
+def write_debug_msg(traj_file, fps, df, unit_s):
+    size_mb = traj_file.stat().st_size/1024/1024
+    log.info(f"input : {traj_file} ({size_mb:,.2f} MB)")
     log.info(f"fps   : {fps}")
     log.info(f"df    : {df}")
     log.info(f"unit  : {unit_s}")
 
 
 def main():
-    File = Path(args.file)
-    if not File.exists():
-        log.error(f'file {File} does not exist!')
-        sys.exit()
-
+    input_file = Path(args.file)
     df = args.df
-    with open(File, encoding="utf8") as finput:
-        header, fps, unit_s = extract_info(finput)
-        unit = 100 if unit_s == "cm" else 1
-        v0 = 1.5 * unit  # max. speed (assumed) [unit/s]
-        write_debug_msg(File, fps, df, unit_s)
-        data = read_csv(File,
-                        sep=r"\s+",
-                        dtype=np.float64,
-                        comment="#").values
-        Columns = data.shape[1]
-        log.info(f"Got {Columns} columns")
-        nframes = np.unique(data[:, 1]).size
-        if Columns > 5:
-            # keep the following cols: id fr x y [z]
-            data = data[:, :5]
+    try:
+        with open(input_file, encoding="utf8") as finput:
+            header, fps, unit_s = extract_info(finput)
+            unit = 100 if unit_s == "cm" else 1
+            v0 = 1.5 * unit  # max. speed (assumed) [unit/s]
+            write_debug_msg(input_file, fps, df, unit_s)
+            data = read_csv(input_file,
+                            sep=r"\s+",
+                            dtype=np.float64,
+                            comment="#").values
+            columns = data.shape[1]
+            log.info(f"Got {columns} columns")
+            nframes = np.unique(data[:, 1]).size
+            if columns > 5:
+                # keep the following cols: id fr x y z
+                data = data[:, :5]
 
-        data = data[data[:, 1].argsort()]  # sort by frame
-        data = extend_data(data, unit)
-        geometry_file = File.parent.joinpath("geometry.xml")
-        write_geometry(data, unit_s, geometry_file)
-        agents = np.unique(data[:, 0]).astype(int)
-        log.info(
-            f"Got {agents.size} pedestrians and {nframes} frames.")
-        for agent in agents:
-            ped = data[data[:, 0] == agent]
-            speed, angle = Speed_Angle(ped[:, 2:4], df, fps)
-            data[data[:, 0] == agent, -1] = speed/v0*255
-            data[data[:, 0] == agent, -2] = angle
-        write_trajectories(data, header, File)
+            data = data[data[:, 1].argsort()]  # sort data by frame
+            data = extend_data(data, unit)
+            geometry_file = input_file.parent.joinpath("geometry.xml")
+            write_geometry(data, unit_s, geometry_file)
+            agents = np.unique(data[:, 0]).astype(int)
+            log.info(
+                f"Got {agents.size} pedestrians and {nframes} frames.")
+            for agent in agents:
+                ped = data[data[:, 0] == agent]
+                speed, angle = speed_angle(ped[:, 2:4], df, fps)
+                data[data[:, 0] == agent, -1] = speed/v0*255
+                data[data[:, 0] == agent, -2] = angle
+
+            write_trajectories(data, header, input_file)
+
+    except OSError as err:
+        log.error(f"""trying to open file
+        {err.filename}: {err. strerror}""")
 
 
 if __name__ == '__main__':
