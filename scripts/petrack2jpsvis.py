@@ -45,6 +45,13 @@ parser.add_argument("-d", "--df", default="10", dest='df',
                     type=check_positive_int,
                     help='''number of frames forward
                     to calculate the speed (default: 10)''')
+parser.add_argument("-a", default="0.2",
+                    type=float,
+                    help='''Semi-axis in moving direction (default: 0.2 m)''')
+parser.add_argument("-b", default="0.3",
+                    type=float,
+                    help='''Semi-axis in shoulder direction (default: 0.3 m)''')
+
 args = parser.parse_args()
 
 
@@ -264,15 +271,15 @@ def extend_data(data, _unit):
 
     """
     rows, cols = data.shape
-    H = 1.5 * np.ones((rows, 1)) * _unit  # height
-    A = 0.2 * np.ones((rows, 1)) * _unit  # semi-axis of ellipse
-    B = 0.3 * np.ones((rows, 1)) * _unit  # semi-axis of ellipse
-    ANGLE = np.zeros((rows, 1))  # angle in degree
-    COLOR = 100 * np.ones((rows, 1))  # will be set wrt. speed
+    h = 1.5 * np.ones((rows, 1)) * _unit  # height
+    a = args.a * np.ones((rows, 1)) * _unit  # semi-axis of ellipse in moving direction
+    b = args.b * np.ones((rows, 1)) * _unit  # semi-axis of ellipse in shoulder direction
+    angle = np.zeros((rows, 1))  # angle in degree
+    color = 100 * np.ones((rows, 1))  # will be set wrt. speed
     if cols == 4:  # some trajectories do not have Z
-        data = np.hstack((data, H, A, B, ANGLE, COLOR))
+        data = np.hstack((data, h, a, b, angle, color))
     else:
-        data = np.hstack((data, A, B, ANGLE, COLOR))
+        data = np.hstack((data, a, b, angle, color))
 
     return data
 
@@ -310,6 +317,8 @@ def write_debug_msg(traj_file, fps, df, unit_s):
     log.info(f"input : {traj_file} ({size_mb:,.2f} MB)")
     log.info(f"fps   : {fps}")
     log.info(f"df    : {df}")
+    log.info(f"a     : {args.a} m")
+    log.info(f"b     : {args.b} m")
     log.info(f"unit  : {unit_s}")
 
 
