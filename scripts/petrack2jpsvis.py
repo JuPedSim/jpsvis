@@ -160,28 +160,28 @@ def speed_angle(traj, df, fps):
     └────────►   *       *
                    *       *
     """
-    Size = traj.shape[0]
-    Speed = np.ones(Size)
-    Angle = np.zeros(Size)
-    if Size < df:
+    size = traj.shape[0]
+    speed = np.ones(size)
+    angle = np.zeros(size)
+    if size < df:
         log.warning(
             f"""The number of frames used to calculate the speed {df}
-            exceeds the total amount of frames ({Size}) in this trajectory.""")
-        return (Speed, Angle)
+            exceeds the total amount of frames ({size}) in this trajectory.""")
+        return (speed, angle)
 
-    Delta = traj[df:, :] - traj[:Size-df, :]
-    Delta_X = Delta[:, 0]
-    Delta_Y = Delta[:, 1]
-    Delta_square = np.square(Delta)
-    Delta_X_square = Delta_square[:, 0]
-    Delta_Y_square = Delta_square[:, 1]
-    Angle[: Size-df] = np.arctan2(Delta_Y,
-                                  Delta_X)*180/np.pi
-    s = np.sqrt(Delta_X_square + Delta_Y_square)
-    Speed[: Size-df] = s / df * fps
-    Speed[Size-df:] = Speed[Size-df-1]
-    Angle[Size-df:] = Angle[Size-df-1]
-    return (Speed, Angle)
+    delta = traj[df:, :] - traj[:size-df, :]
+    delta_x = delta[:, 0]
+    delta_y = delta[:, 1]
+    delta_square = np.square(delta)
+    delta_x_square = delta_square[:, 0]
+    delta_y_square = delta_square[:, 1]
+    angle[: size-df] = np.arctan2(delta_y,
+                                  delta_x)*180/np.pi
+    s = np.sqrt(delta_x_square + delta_y_square)
+    speed[: size-df] = s / df * fps
+    speed[size-df:] = speed[size-df-1]
+    angle[size-df:] = angle[size-df-1]
+    return (speed, angle)
 
 
 def write_geometry(data, Unit, geo_file):
@@ -338,7 +338,8 @@ def main():
                                 comment="#").values
 
             except Exception as err:
-                raise Exception(f"Trajectory is malformed: {err}") from err
+                log.error(f"Trajectory is malformed: {err}")
+                sys.exit()
 
             columns = data.shape[1]
             log.info(f"Got {columns} columns")
