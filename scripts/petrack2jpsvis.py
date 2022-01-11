@@ -265,8 +265,8 @@ def extend_data(data, _unit):
     """
     rows, cols = data.shape
     H = 1.5 * np.ones((rows, 1)) * _unit  # height
-    A = 0.3 * np.ones((rows, 1)) * _unit  # semi-axis of ellipse
-    B = 0.2 * np.ones((rows, 1)) * _unit  # semi-axis of ellipse
+    A = 0.2 * np.ones((rows, 1)) * _unit  # semi-axis of ellipse
+    B = 0.3 * np.ones((rows, 1)) * _unit  # semi-axis of ellipse
     ANGLE = np.zeros((rows, 1))  # angle in degree
     COLOR = 100 * np.ones((rows, 1))  # will be set wrt. speed
     if cols == 4:  # some trajectories do not have Z
@@ -322,10 +322,15 @@ def main():
             unit = 100 if unit_s == "cm" else 1
             v0 = 1.5 * unit  # max. speed (assumed) [unit/s]
             write_debug_msg(input_file, fps, df, unit_s)
-            data = read_csv(input_file,
-                            sep=r"\s+",
-                            dtype=np.float64,
-                            comment="#").values
+            try:
+                data = read_csv(input_file,
+                                sep=r"\s+",
+                                dtype=np.float64,
+                                comment="#").values
+
+            except Exception as err:
+                raise Exception(f"Trajectory is malformed: {err}") from err
+
             columns = data.shape[1]
             log.info(f"Got {columns} columns")
             nframes = np.unique(data[:, 1]).size
